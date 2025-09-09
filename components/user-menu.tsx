@@ -4,7 +4,7 @@ import Link from "next/link"
 import { User, Clock, MapPin, Heart, LogOut } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/lib/context/auth-context"
-import { LoginModal } from "./auth/login-modal"
+import LoginModal from "./auth/login-modal"
 import { useState, useEffect } from "react"
 
 interface UserMenuProps {
@@ -20,9 +20,9 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
     const handleShowLoginModal = () => {
       setShowLoginModal(true)
     }
-    
+
     window.addEventListener('show-login-modal', handleShowLoginModal)
-    
+
     return () => {
       window.removeEventListener('show-login-modal', handleShowLoginModal)
     }
@@ -47,7 +47,7 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
           </div>
           <span className="text-xs mt-1">Login</span>
         </button>
-        
+
         {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
       </>
     )
@@ -63,8 +63,8 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
           <span className="text-xs mt-1">Account</span>
         </button>
       </SheetTrigger>
-      <SheetContent 
-        side="right" 
+      <SheetContent
+        side="right"
         className="w-[85vw] sm:w-[350px] p-0 pt-4 z-50"
         style={{ position: 'fixed', top: 0, bottom: 0, height: '100dvh' }}
       >
@@ -73,27 +73,27 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
             <h2 className="text-xl font-bold">My Account</h2>
             <p className="text-sm text-gray-500">{user.phoneNumber}</p>
           </div>
-          
+
           <div className="flex-1">
             <nav className="space-y-0">
-              <Link 
-                href="/account/orders" 
+              <Link
+                href="/account/orders"
                 className="flex items-center p-4 hover:bg-gray-50 border-b"
                 onClick={onNavigate}
               >
                 <Clock size={20} className="mr-3 text-emerald-600" />
                 <span>My Orders</span>
               </Link>
-              <Link 
-                href="/account/addresses" 
+              <Link
+                href="/account/addresses"
                 className="flex items-center p-4 hover:bg-gray-50 border-b"
                 onClick={onNavigate}
               >
                 <MapPin size={20} className="mr-3 text-emerald-600" />
                 <span>My Addresses</span>
               </Link>
-              <Link 
-                href="/wishlist" 
+              <Link
+                href="/wishlist"
                 className="flex items-center p-4 hover:bg-gray-50 border-b"
                 onClick={onNavigate}
               >
@@ -102,14 +102,14 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
               </Link>
             </nav>
           </div>
-          
+
           <div className="mt-auto p-4 pt-6 pb-20 sm:pb-4">
-            <button 
+            <button
               onClick={async () => {
                 try {
                   // Call onNavigate if provided
                   if (onNavigate) onNavigate();
-                  
+
                   const result = await signOut();
                   if (result.success) {
                     // Clear any checkout redirects
