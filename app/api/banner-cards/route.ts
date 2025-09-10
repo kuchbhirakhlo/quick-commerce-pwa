@@ -19,8 +19,8 @@ if (!fs.existsSync(dataFilePath)) {
   const defaultCards = [
     {
       id: '1',
-      title: 'Fresh Fruits & Vegetables',
-      imageUrl: 'https://images.unsplash.com/photo-1521566652839-697aa473761a',
+      title: 'Pizza & Burgers',
+      imageUrl: 'https://img.freepik.com/premium-photo/flat-lay-arrangement-with-burgers-pizza_926199-1948802.jpg?w=1060s',
       link: '/category/fruits-vegetables',
       position: 'top'
     },
@@ -59,7 +59,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const card = await request.json()
-    
+
     // Validate
     if (!card.title || !card.imageUrl || !card.link || !card.position) {
       return NextResponse.json(
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     // Find if we're updating an existing position
     const existingIndex = bannerCards.findIndex((c: any) => c.position === card.position)
-    
+
     if (card.id) {
       // Update existing card
       const cardIndex = bannerCards.findIndex((c: any) => c.id === card.id)
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
     } else {
       // New card without ID
       card.id = Date.now().toString()
-      
+
       if (existingIndex >= 0) {
         // Replace card at this position
         bannerCards[existingIndex] = card
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
 
     // Write back to file
     fs.writeFileSync(dataFilePath, JSON.stringify(bannerCards, null, 2))
-    
+
     return NextResponse.json(card)
   } catch (error) {
     console.error('Error updating banner card:', error)
@@ -120,7 +120,7 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'Missing card ID' },
@@ -131,12 +131,12 @@ export async function DELETE(request: Request) {
     // Read existing data
     const data = fs.readFileSync(dataFilePath, 'utf8')
     const bannerCards = JSON.parse(data)
-    
+
     const filteredCards = bannerCards.filter((card: any) => card.id !== id)
-    
+
     // Write back to file
     fs.writeFileSync(dataFilePath, JSON.stringify(filteredCards, null, 2))
-    
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting banner card:', error)

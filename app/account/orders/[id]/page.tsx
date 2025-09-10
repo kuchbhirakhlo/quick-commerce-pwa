@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Header from "@/components/header"
 import { useAuth } from "@/lib/context/auth-context"
-import { LoginModal } from "@/components/auth/login-modal"
+import LoginModal from "@/components/auth/login-modal"
 import { ArrowLeft, Check, Clock, Package, Truck, AlertTriangle } from "lucide-react"
 import { getOrderById } from "@/lib/firebase/firestore"
 import type { Order } from "@/lib/firebase/firestore"
@@ -16,7 +16,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  
+
   // Fetch order details
   useEffect(() => {
     const fetchOrder = async () => {
@@ -24,7 +24,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
         try {
           setIsLoading(true)
           const orderData = await getOrderById(params.id)
-          
+
           if (orderData && orderData.userId === user.uid) {
             setOrder(orderData)
           } else {
@@ -38,21 +38,21 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
         }
       }
     }
-    
+
     if (user) {
       fetchOrder()
     }
   }, [user, params.id, router])
-  
+
   // Redirect if not logged in
   useEffect(() => {
     setMounted(true)
-    
+
     if (mounted && !loading && !user) {
       setShowLoginModal(true)
     }
   }, [user, loading, mounted])
-  
+
   if (!mounted || loading || isLoading) {
     return (
       <main className="min-h-screen bg-gray-50">
@@ -75,7 +75,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
           <div className="flex justify-center items-center h-64">
             <div className="text-center">
               <p className="text-lg mb-4">Please log in to view your order details</p>
-              <button 
+              <button
                 onClick={() => setShowLoginModal(true)}
                 className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600"
               >
@@ -85,14 +85,14 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
           </div>
         </div>
         {showLoginModal && (
-          <LoginModal 
+          <LoginModal
             onClose={() => {
               setShowLoginModal(false);
               // If still not logged in after closing modal, redirect to home
               if (!user) {
                 router.push('/');
               }
-            }} 
+            }}
           />
         )}
       </main>
@@ -108,7 +108,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
             <Package size={64} className="mx-auto text-gray-300 mb-4" />
             <h2 className="text-xl font-medium mb-2">Order not found</h2>
             <p className="text-gray-500 mb-4">The order you're looking for doesn't exist or you don't have permission to view it.</p>
-            <button 
+            <button
               onClick={() => router.push('/account/orders')}
               className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600"
             >
@@ -123,18 +123,18 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
   // Function to format timestamp
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "N/A";
-    
+
     // Handle Firestore timestamp
     if (timestamp.toDate && typeof timestamp.toDate === 'function') {
-      return timestamp.toDate().toLocaleDateString() + ' at ' + 
-             timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return timestamp.toDate().toLocaleDateString() + ' at ' +
+        timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-    
+
     // Handle regular Date object or string
     const date = new Date(timestamp);
     return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
-  
+
   // Function to get status icon and color
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -170,14 +170,14 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
     <main className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto py-4 px-4">
-        <button 
+        <button
           onClick={() => router.push('/account/orders')}
           className="flex items-center text-sm text-gray-600 mb-4 hover:text-gray-900"
         >
           <ArrowLeft size={16} className="mr-1" />
           Back to My Orders
         </button>
-        
+
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
             <div>
@@ -189,7 +189,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
               <span className="ml-2 font-medium">{getReadableStatus(order.orderStatus)}</span>
             </div>
           </div>
-          
+
           <div className="border-t border-b py-4 my-4">
             <h2 className="font-semibold mb-2">Delivery Address</h2>
             <p className="font-medium">{order.address.name}</p>
@@ -197,7 +197,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
             <p>{order.address.city}, {order.address.pincode}</p>
             <p>Phone: {order.address.phone}</p>
           </div>
-          
+
           <div className="mb-4">
             <h2 className="font-semibold mb-2">Order Items</h2>
             <div className="space-y-3">
@@ -215,7 +215,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
               ))}
             </div>
           </div>
-          
+
           <div className="mt-4">
             <h2 className="font-semibold mb-2">Order Summary</h2>
             <div className="space-y-2">
@@ -233,7 +233,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
               </div>
             </div>
           </div>
-          
+
           <div className="mt-4">
             <h2 className="font-semibold mb-2">Payment Information</h2>
             <div className="space-y-1">
@@ -250,10 +250,10 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
             </div>
           </div>
         </div>
-        
+
         <div className="text-center mt-8">
           <p className="text-sm text-gray-500 mb-2">Need help with this order?</p>
-          <button 
+          <button
             onClick={() => router.push('/contact')}
             className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
           >

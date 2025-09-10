@@ -26,8 +26,8 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
           {
             id: '1',
             title: 'Fresh Fruits & Vegetables',
-            imageUrl: 'https://images.unsplash.com/photo-1521566652839-697aa473761a',
-            link: '/category/fruits-vegetables',
+            imageUrl: 'https://img.freepik.com/free-vector/advertising-pizza-with-slices-culinary-board-ingredients_1284-15653.jpg?t=st=1757509026~exp=1757512626~hmac=e52688db2105c52a2501c0c6e7de9a1271156d6cd7a2c073d8a1f8e8d6dc13ed&w=1060',
+            link: '/beast-burgers-rQ8mPN5NT1uVufCWXVAh',
             position: 'top'
           },
           {
@@ -58,7 +58,7 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
   }
 
   // Filter banners by position
-  const filteredBanners = position 
+  const filteredBanners = position
     ? bannerCards.filter(card => card.position === position)
     : bannerCards;
 
@@ -74,7 +74,7 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
           {/* Desktop view - show all banners in a row */}
           <div className="hidden md:flex gap-4">
             {bannerCards.map(card => (
-              <BannerCard 
+              <BannerCard
                 key={card.id}
                 title={card.title}
                 imageUrl={card.imageUrl}
@@ -83,11 +83,11 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
               />
             ))}
           </div>
-          
+
           {/* Mobile view - show only top banner */}
           <div className="md:hidden">
             {filteredBanners.map(card => (
-              <BannerCard 
+              <BannerCard
                 key={card.id}
                 title={card.title}
                 imageUrl={card.imageUrl}
@@ -97,12 +97,12 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
           </div>
         </>
       )}
-      
+
       {/* For middle position - visible only on mobile */}
       {position === 'middle' && (
         <div className="md:hidden w-full">
           {filteredBanners.map(card => (
-            <BannerCard 
+            <BannerCard
               key={card.id}
               title={card.title}
               imageUrl={card.imageUrl}
@@ -111,12 +111,12 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
           ))}
         </div>
       )}
-      
+
       {/* For bottom position - visible on both mobile and desktop */}
       {position === 'bottom' && (
         <div className="w-full">
           {filteredBanners.map(card => (
-            <BannerCard 
+            <BannerCard
               key={card.id}
               title={card.title}
               imageUrl={card.imageUrl}
@@ -147,7 +147,7 @@ function BannerSkeleton({ position }: { position?: string }) {
       </>
     )
   }
-  
+
   // Middle skeleton - visible only on mobile
   if (position === 'middle') {
     return (
@@ -156,7 +156,7 @@ function BannerSkeleton({ position }: { position?: string }) {
       </div>
     )
   }
-  
+
   // Bottom skeleton - visible on both mobile and desktop
   return (
     <div className="my-4">

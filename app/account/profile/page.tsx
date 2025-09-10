@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Header from "@/components/header"
 import { useAuth } from "@/lib/context/auth-context"
-import { LoginModal } from "@/components/auth/login-modal"
+import LoginModal from "@/components/auth/login-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { User, Mail, Phone } from "lucide-react"
@@ -14,16 +14,16 @@ export default function ProfilePage() {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
-  
+
   // Form state
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
-  
+
   // Redirect if not logged in
   useEffect(() => {
     setMounted(true)
-    
+
     if (mounted && !loading) {
       if (!user) {
         setShowLoginModal(true)
@@ -35,13 +35,13 @@ export default function ProfilePage() {
       }
     }
   }, [user, loading, mounted])
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // Here you would update the user profile in your backend
     alert("Profile updated successfully!")
   }
-  
+
   const handleLogout = async () => {
     try {
       const result = await signOut()
@@ -54,7 +54,7 @@ export default function ProfilePage() {
       console.error("Error during sign out:", error)
     }
   }
-  
+
   if (!mounted || loading) {
     return (
       <main className="min-h-screen bg-gray-50">
@@ -77,7 +77,7 @@ export default function ProfilePage() {
           <div className="flex justify-center items-center h-64">
             <div className="text-center">
               <p className="text-lg mb-4">Please log in to view your profile</p>
-              <Button 
+              <Button
                 onClick={() => setShowLoginModal(true)}
                 className="bg-emerald-500 hover:bg-emerald-600"
               >
@@ -87,14 +87,14 @@ export default function ProfilePage() {
           </div>
         </div>
         {showLoginModal && (
-          <LoginModal 
+          <LoginModal
             onClose={() => {
               setShowLoginModal(false);
               // If still not logged in after closing modal, redirect to home
               if (!user) {
                 router.push('/');
               }
-            }} 
+            }}
           />
         )}
       </main>
@@ -106,7 +106,7 @@ export default function ProfilePage() {
       <Header />
       <div className="container mx-auto py-4 px-4">
         <h1 className="text-2xl font-bold mb-6">My Profile</h1>
-        
+
         <div className="bg-white rounded-lg shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -125,7 +125,7 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
-            
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
               <div className="relative">
@@ -142,7 +142,7 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
-            
+
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
               <div className="relative">
@@ -159,15 +159,15 @@ export default function ProfilePage() {
                 <p className="text-xs text-gray-500 mt-1">Phone number cannot be changed</p>
               </div>
             </div>
-            
+
             <div className="flex justify-between pt-4">
               <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600">
                 Save Changes
               </Button>
-              
-              <Button 
-                type="button" 
-                variant="outline" 
+
+              <Button
+                type="button"
+                variant="outline"
                 className="text-red-600 border-red-300 hover:bg-red-50"
                 onClick={handleLogout}
               >

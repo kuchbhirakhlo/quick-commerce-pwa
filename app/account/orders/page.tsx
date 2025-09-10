@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Header from "@/components/header"
 import { useAuth } from "@/lib/context/auth-context"
-import { LoginModal } from "@/components/auth/login-modal"
+import LoginModal from "@/components/auth/login-modal"
 import { Clock, Package, Check, Truck, AlertTriangle } from "lucide-react"
 import { getOrdersByUser } from "@/lib/firebase/firestore"
 import type { Order } from "@/lib/firebase/firestore"
@@ -16,7 +16,7 @@ export default function OrdersPage() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  
+
   // Fetch user orders
   useEffect(() => {
     const fetchOrders = async () => {
@@ -32,21 +32,21 @@ export default function OrdersPage() {
         }
       }
     }
-    
+
     if (user) {
       fetchOrders()
     }
   }, [user])
-  
+
   // Redirect if not logged in
   useEffect(() => {
     setMounted(true)
-    
+
     if (mounted && !loading && !user) {
       setShowLoginModal(true)
     }
   }, [user, loading, mounted])
-  
+
   if (!mounted || loading) {
     return (
       <main className="min-h-screen bg-gray-50">
@@ -69,7 +69,7 @@ export default function OrdersPage() {
           <div className="flex justify-center items-center h-64">
             <div className="text-center">
               <p className="text-lg mb-4">Please log in to view your orders</p>
-              <button 
+              <button
                 onClick={() => setShowLoginModal(true)}
                 className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600"
               >
@@ -79,14 +79,14 @@ export default function OrdersPage() {
           </div>
         </div>
         {showLoginModal && (
-          <LoginModal 
+          <LoginModal
             onClose={() => {
               setShowLoginModal(false);
               // If still not logged in after closing modal, redirect to home
               if (!user) {
                 router.push('/');
               }
-            }} 
+            }}
           />
         )}
       </main>
@@ -96,16 +96,16 @@ export default function OrdersPage() {
   // Function to format timestamp
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "N/A";
-    
+
     // Handle Firestore timestamp
     if (timestamp.toDate && typeof timestamp.toDate === 'function') {
       return timestamp.toDate().toLocaleDateString();
     }
-    
+
     // Handle regular Date object or string
     return new Date(timestamp).toLocaleDateString();
   };
-  
+
   // Function to get status icon
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -139,7 +139,7 @@ export default function OrdersPage() {
       <Header />
       <div className="container mx-auto py-4 px-4">
         <h1 className="text-2xl font-bold mb-6">My Orders</h1>
-        
+
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
@@ -149,7 +149,7 @@ export default function OrdersPage() {
             <Package size={64} className="mx-auto text-gray-300 mb-4" />
             <h2 className="text-xl font-medium mb-2">No orders yet</h2>
             <p className="text-gray-500 mb-4">You haven't placed any orders yet.</p>
-            <button 
+            <button
               onClick={() => router.push('/category')}
               className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600"
             >
@@ -166,17 +166,16 @@ export default function OrdersPage() {
                     <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
                   </div>
                   <div className="flex items-center">
-                    <span className={`flex items-center text-sm ${
-                      order.orderStatus === 'delivered' ? 'text-green-600' : 
-                      order.orderStatus === 'cancelled' ? 'text-red-600' : 
-                      'text-blue-600'
-                    }`}>
+                    <span className={`flex items-center text-sm ${order.orderStatus === 'delivered' ? 'text-green-600' :
+                        order.orderStatus === 'cancelled' ? 'text-red-600' :
+                          'text-blue-600'
+                      }`}>
                       {getStatusIcon(order.orderStatus)}
                       {getReadableStatus(order.orderStatus)}
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2 mb-3">
                   {order.items.map((item, index) => (
                     <div key={index} className="flex justify-between text-sm">
@@ -185,14 +184,14 @@ export default function OrdersPage() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="border-t pt-3 flex justify-between items-center">
                   <span className="font-medium">Total</span>
                   <span className="font-bold">₹{order.totalAmount.toFixed(2)}</span>
                 </div>
-                
+
                 <div className="mt-3">
-                  <button 
+                  <button
                     onClick={() => router.push(`/account/orders/${order.id}`)}
                     className="text-emerald-600 text-sm font-medium hover:underline"
                   >

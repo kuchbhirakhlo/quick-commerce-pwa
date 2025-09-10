@@ -18,6 +18,7 @@ import { usePincode } from "@/lib/hooks/use-pincode"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
 import { getButtonClass } from "@/lib/utils"
+import LoginModal from "../auth/login-modal"
 
 // Define address type
 interface SavedAddress {
@@ -72,7 +73,7 @@ export default function CheckoutForm() {
         try {
           const addresses = JSON.parse(addressesJson) as SavedAddress[]
           setSavedAddresses(addresses)
-          
+
           // Find default address or use the first one
           const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0]
           if (defaultAddress) {
@@ -90,7 +91,7 @@ export default function CheckoutForm() {
           console.error("Error parsing saved addresses:", error)
         }
       }
-      
+
       // Pre-fill phone number from user data if available and no saved addresses
       if (!addressesJson && user?.phoneNumber) {
         setFormData(prev => ({
@@ -110,7 +111,7 @@ export default function CheckoutForm() {
   const handleRadioChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
-  
+
   // Handle address form changes
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
@@ -147,9 +148,17 @@ export default function CheckoutForm() {
 
   // Save the address
   const saveAddress = () => {
-    if (!user?.uid) return
-
-    const newAddresses = [...savedAddresses]
+    if (!user?.uid) return;
+    // Validate name and phone
+    if (!addressFormData.name.trim()) {
+      toast({ title: "Name Required", description: "Please enter your name.", variant: "destructive" });
+      return;
+    }
+    if (!addressFormData.phone.trim() || !/^\d{10}$/.test(addressFormData.phone.trim())) {
+      toast({ title: "Mobile Number Required", description: "Please enter a valid 10-digit mobile number.", variant: "destructive" });
+      return;
+    }
+    const newAddresses = [...savedAddresses];
     const addressData = {
       name: addressFormData.name,
       phone: addressFormData.phone,
@@ -157,37 +166,33 @@ export default function CheckoutForm() {
       pincode: addressFormData.pincode,
       city: addressFormData.city,
       type: addressFormData.type
-    }
-
+    };
     if (isAddingNewAddress) {
       // Add as new address
-      const newId = `addr_${Date.now()}`
+      const newId = `addr_${Date.now()}`;
       const newAddress: SavedAddress = {
         id: newId,
         ...addressData,
         isDefault: savedAddresses.length === 0 // Make default if it's the first address
-      }
-      
-      newAddresses.push(newAddress)
-      setSelectedAddressId(newId)
+      };
+      newAddresses.push(newAddress);
+      setSelectedAddressId(newId);
     } else if (isEditingAddress && selectedAddressId) {
       // Update existing address
-      const index = newAddresses.findIndex(addr => addr.id === selectedAddressId)
+      const index = newAddresses.findIndex(addr => addr.id === selectedAddressId);
       if (index >= 0) {
         newAddresses[index] = {
           ...newAddresses[index],
           ...addressData
-        }
+        };
       }
     }
-    
     // Save to localStorage
-    localStorage.setItem(`saved_addresses_${user.uid}`, JSON.stringify(newAddresses))
-    setSavedAddresses(newAddresses)
-    
+    localStorage.setItem(`saved_addresses_${user.uid}`, JSON.stringify(newAddresses));
+    setSavedAddresses(newAddresses);
     // Update main form data
     if (selectedAddressId) {
-      const selectedAddress = newAddresses.find(addr => addr.id === selectedAddressId)
+      const selectedAddress = newAddresses.find(addr => addr.id === selectedAddressId);
       if (selectedAddress) {
         setFormData(prev => ({
           ...prev,
@@ -196,19 +201,17 @@ export default function CheckoutForm() {
           address: selectedAddress.address,
           pincode: selectedAddress.pincode,
           city: selectedAddress.city,
-        }))
+        }));
       }
     }
-    
     // Reset states
-    setIsEditingAddress(false)
-    setIsAddingNewAddress(false)
-    setShowAddressDialog(false)
-    
+    setIsEditingAddress(false);
+    setIsAddingNewAddress(false);
+    setShowAddressDialog(false);
     toast({
       title: "Address Saved",
       description: "Your delivery address has been saved successfully."
-    })
+    });
   }
 
   // Select an address
@@ -235,26 +238,26 @@ export default function CheckoutForm() {
   // Get current location and find address
   const getCurrentLocation = () => {
     setIsLoadingAddress(true)
-    
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
             const { latitude, longitude } = position.coords
-            
+
             // Use reverse geocoding to get address
             const response = await fetch(
               `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
             )
-            
+
             const data = await response.json()
-            
+
             if (data.status === "OK" && data.results && data.results.length > 0) {
               // Extract address components
               let foundPincode = ""
               let foundCity = ""
               let foundAddress = data.results[0].formatted_address
-              
+
               // Look for postal_code and locality in address components
               for (const result of data.results) {
                 for (const component of result.address_components) {
@@ -267,7 +270,7 @@ export default function CheckoutForm() {
                 }
                 if (foundPincode && foundCity) break
               }
-              
+
               // Create a new address
               const newAddress: SavedAddress = {
                 id: `addr_${Date.now()}`,
@@ -279,13 +282,13 @@ export default function CheckoutForm() {
                 type: "Home",
                 isDefault: savedAddresses.length === 0
               }
-              
+
               // Save the new address
               const newAddresses = [...savedAddresses, newAddress]
               localStorage.setItem(`saved_addresses_${user?.uid}`, JSON.stringify(newAddresses))
               setSavedAddresses(newAddresses)
               setSelectedAddressId(newAddress.id)
-              
+
               // Update form data
               setFormData(prev => ({
                 ...prev,
@@ -293,7 +296,7 @@ export default function CheckoutForm() {
                 pincode: foundPincode || prev.pincode,
                 city: foundCity || prev.city
               }))
-              
+
               toast({
                 title: "Address Updated",
                 description: "Your delivery address has been updated based on your current location."
@@ -331,20 +334,30 @@ export default function CheckoutForm() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
+    e.preventDefault();
+    setIsSubmitting(true);
     try {
       if (!user) {
-        throw new Error("User not authenticated")
+        throw new Error("User not authenticated");
       }
-
-      const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-      const deliveryFee = formData.deliveryOption === "standard" ? 40 : 60
-      const totalAmount = subtotal + deliveryFee
-
+      // Validate name and phone
+      if (!formData.name.trim()) {
+        toast({ title: "Name Required", description: "Please enter your name.", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.phone.trim() || !/^\d{10}$/.test(formData.phone.trim())) {
+        toast({ title: "Mobile Number Required", description: "Please enter a valid 10-digit mobile number.", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+      const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+      const deliveryFee = formData.deliveryOption === "standard" ? 40 : 60;
+      const totalAmount = subtotal + deliveryFee;
       const orderData = {
         userId: user.uid,
+        userName: formData.name,
+        userPhone: formData.phone,
         items: cartItems.map((item) => ({
           productId: item.id,
           name: item.name,
@@ -363,45 +376,40 @@ export default function CheckoutForm() {
         paymentMethod: formData.paymentMethod as "cod" | "online",
         paymentStatus: "pending" as "pending" | "paid" | "failed",
         orderStatus: "pending" as "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled",
-      }
-
+      };
       // If payment method is online, we would redirect to payment gateway here
       // For now, we'll just create the order directly
-
-      const result = await createOrder(orderData)
-
+      const result = await createOrder(orderData);
       if (result.id) {
-        clearCart()
-        
+        clearCart();
         // Show appropriate message based on whether multiple orders were created
         if (result.orderCount && result.orderCount > 1) {
           toast({
             title: "Orders placed successfully!",
             description: `Your ${result.orderCount} orders have been placed with different vendors.`,
-          })
+          });
         } else {
           toast({
             title: "Order placed successfully!",
             description: `Your order #${result.id.slice(0, 8).toUpperCase()} has been placed.`,
-          })
+          });
         }
-        
         // Use setTimeout to ensure toast is displayed before navigation
         setTimeout(() => {
-          router.push(`/checkout/success?orderId=${result.id}${result.allOrderIds ? `&allOrderIds=${result.allOrderIds.join(',')}` : ''}`)
-        }, 500)
+          router.push(`/checkout/success?orderId=${result.id}${result.allOrderIds ? `&allOrderIds=${result.allOrderIds.join(',')}` : ''}`);
+        }, 500);
       }
     } catch (error) {
-      console.error("Error placing order:", error)
+      console.error("Error placing order:", error);
       toast({
         title: "Failed to place order",
         description: "There was an error processing your order. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   // Calculate order summary
   const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
@@ -416,10 +424,10 @@ export default function CheckoutForm() {
       {/* Delivery Address */}
       <div className="bg-white p-4 rounded-lg shadow-sm">
         <h2 className="text-base font-semibold mb-3">Delivery Address</h2>
-        
+
         {selectedAddress ? (
           <div className="flex justify-between items-start">
-          <div>
+            <div>
               <div className="flex items-center">
                 <MapPin size={16} className="text-green-500 mr-2" />
                 <span className="font-medium">{selectedAddress.type || "Home"}</span>
@@ -431,10 +439,10 @@ export default function CheckoutForm() {
                 {selectedAddress.city}, {selectedAddress.pincode}
               </p>
             </div>
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={openAddressDialog}
               className="text-green-600 h-8 px-2"
             >
@@ -444,11 +452,11 @@ export default function CheckoutForm() {
         ) : (
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-600">No address selected</p>
-            <Button 
-              type="button" 
-              onClick={getCurrentLocation} 
+            <Button
+              type="button"
+              onClick={getCurrentLocation}
               disabled={isLoadingAddress}
-              variant="outline" 
+              variant="outline"
               size="sm"
               className="flex items-center h-8"
             >
@@ -464,20 +472,20 @@ export default function CheckoutForm() {
             <DialogHeader>
               <DialogTitle>Select Delivery Address</DialogTitle>
             </DialogHeader>
-            
+
             {/* Address List */}
             {!isAddingNewAddress && !isEditingAddress && (
               <div className="space-y-3 max-h-[60vh] overflow-y-auto py-2">
                 {savedAddresses.length > 0 ? (
                   savedAddresses.map(address => (
-                    <Card 
-                      key={address.id} 
+                    <Card
+                      key={address.id}
                       className={`cursor-pointer border ${selectedAddressId === address.id ? 'border-orange-500' : 'border-gray-200'}`}
                       onClick={() => selectAddress(address)}
                     >
                       <CardContent className="p-3">
                         <div className="flex justify-between items-start">
-          <div>
+                          <div>
                             <div className="flex items-center">
                               <Home size={14} className="text-green-500 mr-1" />
                               <span className="font-medium text-sm">{address.type || "Home"}</span>
@@ -488,10 +496,10 @@ export default function CheckoutForm() {
                             <p className="text-sm mt-1">{address.address}</p>
                             <p className="text-xs text-gray-500">{address.city}, {address.pincode}</p>
                           </div>
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               startEditingAddress(address);
@@ -507,22 +515,22 @@ export default function CheckoutForm() {
                 ) : (
                   <div className="text-center py-4 text-gray-500">No saved addresses</div>
                 )}
-                
-                <Button 
-                  type="button" 
-                  onClick={startNewAddress} 
-                  variant="outline" 
+
+                <Button
+                  type="button"
+                  onClick={startNewAddress}
+                  variant="outline"
                   className="w-full flex items-center justify-center"
                 >
                   <Plus size={16} className="mr-2" />
                   Add New Address
                 </Button>
-                
-                <Button 
-                  type="button" 
-                  onClick={getCurrentLocation} 
+
+                <Button
+                  type="button"
+                  onClick={getCurrentLocation}
                   disabled={isLoadingAddress}
-                  variant="outline" 
+                  variant="outline"
                   className="w-full flex items-center justify-center"
                 >
                   <MapPin size={16} className="mr-2" />
@@ -530,7 +538,7 @@ export default function CheckoutForm() {
                 </Button>
               </div>
             )}
-            
+
             {/* Address Form */}
             {(isAddingNewAddress || isEditingAddress) && (
               <div className="space-y-4 py-2">
@@ -546,7 +554,7 @@ export default function CheckoutForm() {
                         <Home size={16} className="mr-2" />
                         Home
                       </Button>
-                      
+
                       <Button
                         type="button"
                         onClick={() => setAddressFormData({ ...addressFormData, type: "work" })}
@@ -555,7 +563,7 @@ export default function CheckoutForm() {
                         <Briefcase size={16} className="mr-2" />
                         Work
                       </Button>
-                      
+
                       <Button
                         type="button"
                         onClick={() => setAddressFormData({ ...addressFormData, type: "other" })}
@@ -566,61 +574,61 @@ export default function CheckoutForm() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="col-span-2">
                     <Label htmlFor="name" className="text-sm">Full Name</Label>
-                    <Input 
-                      id="name" 
-                      value={addressFormData.name} 
-                      onChange={handleAddressChange} 
+                    <Input
+                      id="name"
+                      value={addressFormData.name}
+                      onChange={handleAddressChange}
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div className="col-span-2">
                     <Label htmlFor="phone" className="text-sm">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      value={addressFormData.phone} 
-                      onChange={handleAddressChange} 
+                    <Input
+                      id="phone"
+                      value={addressFormData.phone}
+                      onChange={handleAddressChange}
                       className="mt-1"
                     />
-          </div>
+                  </div>
 
                   <div className="col-span-2">
                     <Label htmlFor="address" className="text-sm">Address</Label>
-                    <Textarea 
-                      id="address" 
-                      value={addressFormData.address} 
-                      onChange={handleAddressChange} 
+                    <Textarea
+                      id="address"
+                      value={addressFormData.address}
+                      onChange={handleAddressChange}
                       className="mt-1"
                     />
-          </div>
+                  </div>
 
-          <div>
+                  <div>
                     <Label htmlFor="pincode" className="text-sm">Pincode</Label>
-                    <Input 
-                      id="pincode" 
-                      value={addressFormData.pincode} 
-                      onChange={handleAddressChange} 
+                    <Input
+                      id="pincode"
+                      value={addressFormData.pincode}
+                      onChange={handleAddressChange}
                       className="mt-1"
                     />
-          </div>
+                  </div>
 
-          <div>
+                  <div>
                     <Label htmlFor="city" className="text-sm">City</Label>
-                    <Input 
-                      id="city" 
-                      value={addressFormData.city} 
-                      onChange={handleAddressChange} 
+                    <Input
+                      id="city"
+                      value={addressFormData.city}
+                      onChange={handleAddressChange}
                       className="mt-1"
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between pt-2">
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     variant="outline"
                     onClick={() => {
                       setIsAddingNewAddress(false)
@@ -629,17 +637,17 @@ export default function CheckoutForm() {
                   >
                     Cancel
                   </Button>
-                  
-                  <Button 
-                    type="button" 
+
+                  <Button
+                    type="button"
                     onClick={saveAddress}
                     className={getButtonClass(pathname)}
                     disabled={!addressFormData.address || !addressFormData.pincode}
                   >
                     Save Address
                   </Button>
-          </div>
-        </div>
+                </div>
+              </div>
             )}
           </DialogContent>
         </Dialog>
@@ -681,7 +689,7 @@ export default function CheckoutForm() {
       {/* Order Summary */}
       <div className="bg-white p-4 rounded-lg shadow-sm">
         <h2 className="text-base font-semibold mb-3">Order Summary</h2>
-        
+
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Subtotal</span>
