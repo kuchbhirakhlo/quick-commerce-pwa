@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { Home, ShoppingBag, ShoppingCart } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation";
+import { Home, ShoppingBag, ShoppingCart, User as UserIcon } from "lucide-react";
 import { useState, useEffect } from "react"
 import { useCart } from "@/lib/hooks/use-cart"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from "@/components/ui/sheet"
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/context/auth-context"
 import UserMenu from "./user-menu"
 import { getAllCategories } from "@/lib/firebase/firestore"
+import type { User as FirebaseUser } from "firebase/auth";
 
 // Define user pages where bottom navbar should appear
 const USER_PAGES = [
@@ -41,7 +42,7 @@ export default function BottomNav() {
     const [isMobile, setIsMobile] = useState(false)
     const { cartItems, cartCount } = useCart()
     const [cartOpen, setCartOpen] = useState(false)
-    const { user } = useAuth()
+    const { user } = useAuth() as { user: FirebaseUser | null };
     const [firstCategorySlug, setFirstCategorySlug] = useState<string | null>(null)
 
     // Use useEffect to handle client-side mounting and check screen size
@@ -103,7 +104,10 @@ export default function BottomNav() {
             }, 300)
         } else {
             // Use router for navigation instead of window.location
-            router.push('/checkout')
+            router.push('/checkout');
+            // Refresh to ensure all states are in sync, especially after a recent login
+            // This helps if the user object was stale.
+            router.refresh();
         }
     }
 
@@ -201,17 +205,6 @@ export default function BottomNav() {
                 </Sheet>
 
                 <UserMenu
-                    user={
-                        user
-                            ? {
-                                ...user,
-                                photoURL: user.photoURL === null ? undefined : user.photoURL,
-                                displayName: user.displayName === null ? undefined : user.displayName,
-                                email: user.email === null ? undefined : user.email,
-                                phoneNumber: user.phoneNumber === null ? undefined : user.phoneNumber
-                            }
-                            : null
-                    }
                     onNavigate={() => cartOpen && setCartOpen(false)}
                 />
             </div>

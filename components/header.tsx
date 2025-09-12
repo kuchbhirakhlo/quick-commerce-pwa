@@ -97,7 +97,19 @@ export default function Header() {
     };
 
     fetchCategories();
-  }, [pincode])
+
+    // Listen for custom event to show login modal from other components (like BottomNav)
+    const handleShowLoginModalEvent = () => {
+      setShowLoginModal(true);
+    };
+
+    window.addEventListener('show-login-modal', handleShowLoginModalEvent);
+
+    return () => {
+      window.removeEventListener('show-login-modal', handleShowLoginModalEvent);
+    };
+
+  }, [pincode]);
 
   const handleSignOut = async () => {
     try {
@@ -409,22 +421,27 @@ export default function Header() {
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-gray-700">
-                    <User size={20} className="mr-2" />
-                    <span className="hidden md:inline">{user.phoneNumber}</span>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-700">
+                    {user.photoURL ? (
+                      <Image
+                        src={user.photoURL}
+                        alt={user.displayName || "User profile"}
+                        width={28}
+                        height={28}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <User size={20} />
+                    )}
+                    <span className="hidden md:inline">Hi,{user.displayName || user.phoneNumber || "Account"}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/account/profile">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/account/orders">Orders</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/account/addresses">Addresses</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
