@@ -160,11 +160,22 @@ export async function signInWithGoogle() {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
   try {
-    // Use popup for desktop, redirect for mobile
-    if (window.innerWidth > 600) {
+    // Try popup first for best UX; fallback to redirect if popup isn't supported/allowed
+    try {
       const result = await signInWithPopup(auth, provider);
       return { success: true, user: result.user };
-    } else {
+    } catch (popupError: any) {
+      const code = popupError?.code || "";
+      const isPopupBlockedOrUnsupported =
+        code === "auth/popup-blocked" ||
+        code === "auth/popup-closed-by-user" ||
+        code === "auth/operation-not-supported-in-this-environment" ||
+        code === "auth/browser-popup-blocked";
+
+      if (!isPopupBlockedOrUnsupported) {
+        throw popupError;
+      }
+
       await signInWithRedirect(auth, provider);
       return { success: true, user: null }; // user will be available after redirect
     }

@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
+import Link, { LinkProps } from "next/link"
 import Image from "next/image"
-import { Search, ShoppingCart, User, LogOut, ChevronDown, Clock, MapPin, Menu } from "lucide-react"
+import { Search, ShoppingCart, User as UserIcon, LogOut, ChevronDown, MapPin, Home, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -17,6 +18,7 @@ import {
 import { useCart } from "@/lib/hooks/use-cart"
 import { useAuth } from "@/lib/context/auth-context"
 import { useFirebase } from "@/lib/context/firebase-provider"
+import type { User as FirebaseUser } from "firebase/auth"
 import LoginModal from "./auth/login-modal"
 import PincodeSelector from "./pincode-selector"
 import {
@@ -40,14 +42,20 @@ interface Category {
   icon?: string;
 }
 
-// Function to convert category name to URL-friendly slug
+const AccountLink = (props: LinkProps & { children: React.ReactNode; className?: string }) => (
+  <SheetClose asChild>
+    <Link {...props} />
+  </SheetClose>
+);
+
+// Function to convert category name to URL-friendly slug (assuming it's used elsewhere)
 function createSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 }
 
 export default function Header() {
   const { cartItems, cartCount, clearCart } = useCart()
-  const { user, signOut, loading: authLoading } = useAuth()
+  const { user, signOut, loading: authLoading, refreshAuthState } = useAuth() as { user: FirebaseUser | null; signOut: () => Promise<any>; loading: boolean; refreshAuthState: () => void }
   const { isAuthInitialized, isLoading: firebaseLoading } = useFirebase()
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -71,6 +79,24 @@ export default function Header() {
 
   // Estimate delivery time (would come from admin/backend)
   const [deliveryTime, setDeliveryTime] = useState("8")
+  const [openAccountSheet, setOpenAccountSheet] = useState(false)
+  const [avatarBroken, setAvatarBroken] = useState(false)
+
+  const getAvatarUrl = (url?: string | null) => {
+    if (!url) return ""
+    try {
+      const u = new URL(url)
+      if (u.hostname.endsWith("googleusercontent.com")) {
+        if (!u.searchParams.has("sz")) {
+          u.searchParams.set("sz", "64")
+        }
+        return u.toString()
+      }
+      return url
+    } catch {
+      return url
+    }
+  }
 
   // Only show auth UI after component has mounted to avoid hydration mismatch
   useEffect(() => {
@@ -110,6 +136,14 @@ export default function Header() {
     };
 
   }, [pincode]);
+
+  // Ensure auth state is refreshed once Firebase Auth is initialized (helps after Google redirect on mobile)
+  useEffect(() => {
+    if (!isAuthInitialized) return
+    // Refresh once after auth initializes
+    refreshAuthState()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthInitialized])
 
   const handleSignOut = async () => {
     try {
@@ -308,6 +342,9 @@ export default function Header() {
   // Close login modal
   const handleCloseLoginModal = () => {
     setShowLoginModal(false);
+    // After a login attempt, refresh the page to ensure the header reflects the new auth state.
+    // This is a reliable way to sync client components with the updated auth context.
+    router.refresh();
   }
 
   // Determine if we're in a loading state
@@ -321,6 +358,32 @@ export default function Header() {
           <Link href="/" className="flex items-center">
             <Image src="/logo.webp" alt="Buzzat" width={90} height={36} className="h-12 w-auto" priority />
           </Link>
+          {!loading && (
+            <div className="ml-auto flex items-center">
+              {user ? (
+                <Button variant="ghost" size="icon" className="flex items-center gap-2 text-gray-700 rounded-full h-9 w-9" onClick={() => setOpenAccountSheet(true)}>
+                  {user.photoURL && !avatarBroken ? (
+                    <img
+                      src={getAvatarUrl(user.photoURL)}
+                      alt={user.displayName || "User profile"}
+                      width={28}
+                      height={28}
+                      className="rounded-full"
+                      onError={() => setAvatarBroken(true)}
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <UserIcon size={22} />
+                  )}
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" className="text-gray-700" onClick={handleLoginClick} disabled={!isAuthInitialized}>
+                  <UserIcon size={20} className="mr-1" />
+                  <span>Login</span>
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Work location selector and pincode for mobile */}
@@ -396,6 +459,100 @@ export default function Header() {
         <div className="px-4 py-2">
           <ProductSearch />
         </div>
+
+        {/* Mobile Bottom Nav moved into Header */}
+        <div className="mobile-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t z-20">
+          <div className="flex justify-around items-center h-16 w-full">
+            <Link href="/" className={`flex flex-col items-center justify-center w-full py-1 ${pathname === "/" ? "text-emerald-600" : "text-gray-500"}`}>
+              <Home size={22} />
+              <span className="text-xs mt-1">Home</span>
+              {pathname === "/" && <div className="w-1/2 h-1 bg-emerald-600 rounded-full mt-1"></div>}
+            </Link>
+
+            <Link href="/category" className={`flex flex-col items-center justify-center w-full py-1 ${pathname?.startsWith("/category") ? "text-emerald-600" : "text-gray-500"}`}>
+              <ShoppingBag size={22} />
+              <span className="text-xs mt-1">Shop</span>
+              {pathname?.startsWith("/category") && <div className="w-1/2 h-1 bg-emerald-600 rounded-full mt-1"></div>}
+            </Link>
+
+            <Sheet>
+              <SheetTrigger asChild>
+                <button className="flex flex-col items-center justify-center w-full py-1 text-gray-500">
+                  <div className="flex justify-center relative">
+                    <ShoppingCart size={22} />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {cartCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs mt-1">Cart</span>
+                </button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[80vh] rounded-t-xl px-0 overflow-hidden z-[120]">
+                <SheetTitle className="sr-only">Shopping Cart</SheetTitle>
+                <div className="h-full flex flex-col px-4">
+                  <div className="flex justify-between items-center pb-3 border-b mb-2">
+                    <h2 className="text-xl font-bold">Your Cart</h2>
+                  </div>
+                  {cartItems.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                      <ShoppingCart size={64} className="text-gray-300 mb-4" />
+                      <p className="text-gray-500">Your cart is empty</p>
+                      <Button className={`mt-4 ${getButtonClass(pathname)}`}>Start Shopping</Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex-1 overflow-y-auto pb-4 max-h-[50vh]">
+                        {cartItems.map(item => (
+                          <CartItem
+                            key={item.id}
+                            id={item.id}
+                            name={item.name}
+                            price={item.price}
+                            unit={item.unit}
+                            image={item.image}
+                            quantity={item.quantity}
+                          />
+                        ))}
+                      </div>
+                      <div className="border-t pt-4 mt-auto sticky bottom-0 left-0 right-0 bg-white px-4">
+                        <div className="flex justify-between mb-2">
+                          <span>Subtotal</span>
+                          <span>₹{cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between mb-4">
+                          <span>Delivery Fee</span>
+                          <span>₹40.00</span>
+                        </div>
+                        <div className="flex justify-between font-bold mb-4">
+                          <span>Total</span>
+                          <span>₹{(cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 40).toFixed(2)}</span>
+                        </div>
+                        <div className="pb-4">
+                          <Button
+                            className={`w-full ${getButtonClass(pathname)}`}
+                            onClick={() => {
+                              if (!user) {
+                                localStorage.setItem("redirect_to_checkout", "true")
+                                setShowLoginModal(true)
+                              } else {
+                                router.push('/checkout')
+                              }
+                            }}
+                          >
+                            {user ? "Proceed to Checkout" : "Login to Checkout"}
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+
+          </div>
+        </div>
       </div>
 
       {/* Desktop header */}
@@ -419,37 +576,27 @@ export default function Header() {
             {loading ? (
               <div className="h-9 w-9 rounded-full bg-gray-200 animate-pulse"></div>
             ) : user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-700">
-                    {user.photoURL ? (
-                      <Image
-                        src={user.photoURL}
-                        alt={user.displayName || "User profile"}
-                        width={28}
-                        height={28}
-                        className="rounded-full"
-                      />
-                    ) : (
-                      <User size={20} />
-                    )}
-                    <span className="hidden md:inline">Hi,{user.displayName || user.phoneNumber || "Account"}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href="/account/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/account/orders">Orders</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
-                    <LogOut size={16} className="mr-2" />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2 text-gray-700"
+                onClick={() => setOpenAccountSheet(true)}
+              >
+                {user.photoURL && !avatarBroken ? (
+                  <img
+                    src={getAvatarUrl(user.photoURL)}
+                    alt={user.displayName || "User profile"}
+                    width={28}
+                    height={28}
+                    className="rounded-full"
+                    onError={() => setAvatarBroken(true)}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <UserIcon size={20} />
+                )}
+                <span className="hidden md:inline">Hi,{user.displayName || (user as any).phoneNumber || "Account"}</span>
+              </Button>
             ) : (
               <Button
                 variant="ghost"
@@ -458,8 +605,8 @@ export default function Header() {
                 onClick={handleLoginClick}
                 disabled={!isAuthInitialized}
               >
-                <User size={20} className="mr-2" />
-                <span className="hidden md:inline">Login</span>
+                <UserIcon size={20} className="mr-2" />
+                <span className="">Login</span>
               </Button>
             )}
 
@@ -569,6 +716,53 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Account sidebar (Sheet) */}
+      <Sheet open={openAccountSheet} onOpenChange={setOpenAccountSheet}>
+        <SheetContent side="right" className="w-80 sm:w-96 z-[100]">
+          <SheetTitle className="sr-only">Account</SheetTitle>
+          {user ? (
+            <div className="flex flex-col h-full">
+              <div className="flex items-center gap-3 pb-4 border-b">
+                {user.photoURL && !avatarBroken ? (
+                  <img src={getAvatarUrl(user.photoURL)} alt={user.displayName || "User"} width={40} height={40} className="rounded-full" onError={() => setAvatarBroken(true)} referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                    <UserIcon size={20} />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{user.displayName || (user as any).phoneNumber || (user as any).email || "Account"}</div>
+                </div>
+              </div>
+
+              <div className="flex-1 py-4 space-y-2">
+                <SheetClose asChild>
+                  <Link href="/account/profile" className="block px-2 py-2 rounded hover:bg-gray-50">Profile</Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link href="/account/orders" className="block px-2 py-2 rounded hover:bg-gray-50">Orders</Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link href="/wishlist" className="block px-2 py-2 rounded hover:bg-gray-50">Wishlist</Link>
+                </SheetClose>
+              </div>
+
+              <div className="pt-2 border-t">
+                <Button variant="destructive" className="w-full" onClick={async () => { await handleSignOut(); setOpenAccountSheet(false); }}>
+                  <LogOut size={16} className="mr-2" />
+                  Sign out
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="py-6">
+              <p className="text-sm text-gray-600 mb-4">Please log in to view your account.</p>
+              <Button className="w-full" onClick={() => { setOpenAccountSheet(false); handleLoginClick(); }}>Login</Button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {showLoginModal && <LoginModal onClose={handleCloseLoginModal} />}
     </header>
