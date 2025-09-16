@@ -7,22 +7,20 @@ import { getProductById } from "@/lib/firebase/firestore"
 import Header from "@/components/header"
 
 interface ProductPageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-  const { id } = params
+  const { id } = await params
   const product = await getProductById(id)
-  
+
   if (!product) {
     return {
       title: "Product Not Found | Quick Commerce",
       description: "The product you are looking for does not exist."
     }
   }
-  
+
   return {
     title: `${product.name} | Quick Commerce`,
     description: product.description || `Buy ${product.name} online at Quick Commerce`,
@@ -30,19 +28,20 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
-  const { id } = params
+  const { id } = await params
   const productData = await getProductById(id)
-  
+
   if (!productData) {
     notFound()
   }
-  
+
   const product = {
     ...productData,
     createdAt: productData.createdAt ? productData.createdAt.toDate().toISOString() : null,
     updatedAt: productData.updatedAt ? productData.updatedAt.toDate().toISOString() : null,
+    id: productData.id ?? id,
   }
-  
+
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />

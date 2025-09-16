@@ -33,6 +33,21 @@ interface AnalyticsData {
   }[]
 }
 
+interface OrderDocItem {
+  productId: string
+  name: string
+  price: number
+  quantity?: number
+}
+
+interface OrderDoc {
+  id: string
+  createdAt: Date
+  totalAmount?: number
+  orderStatus?: string
+  items?: OrderDocItem[]
+}
+
 export default function VendorAnalytics() {
   const { vendor } = useVendor()
   const [period, setPeriod] = useState("week")
@@ -81,15 +96,29 @@ export default function VendorAnalytics() {
         )
         const productsSnapshot = await getDocs(productsQuery)
 
-        // Process order data
-        const orders = ordersSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate() || new Date()
-        }))
+        // Process order data with explicit typing
+        const orders: OrderDoc[] = ordersSnapshot.docs.map(doc => {
+          const data = doc.data() as any
+          const items: OrderDocItem[] = Array.isArray(data.items)
+            ? data.items.map((item: any) => ({
+              productId: item.productId || "",
+              name: item.name || "",
+              price: typeof item.price === 'number' ? item.price : 0,
+              quantity: typeof item.quantity === 'number' ? item.quantity : 1,
+            }))
+            : []
+
+          return {
+            id: doc.id,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+            totalAmount: typeof data.totalAmount === 'number' ? data.totalAmount : 0,
+            orderStatus: typeof data.orderStatus === 'string' ? data.orderStatus : undefined,
+            items,
+          }
+        })
 
         // Calculate total revenue and average order value
-        const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0)
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
         const averageOrderValue = orders.length ? totalRevenue / orders.length : 0
 
         // Process orders by day
@@ -107,7 +136,7 @@ export default function VendorAnalytics() {
         orders.forEach(order => {
           const dayIndex = order.createdAt.getDay()
           ordersByDay[dayIndex].total += 1
-          salesByDay[dayIndex].total += (order.total || 0)
+          salesByDay[dayIndex].total += (order.totalAmount || 0)
         })
 
         // Calculate order status breakdown
@@ -129,16 +158,17 @@ export default function VendorAnalytics() {
           if (!order.items) return
 
           order.items.forEach(item => {
-            if (!productMap[item.id]) {
-              productMap[item.id] = {
+            const key = item.productId
+            if (!productMap[key]) {
+              productMap[key] = {
                 name: item.name,
                 totalSold: 0,
                 revenue: 0
               }
             }
 
-            productMap[item.id].totalSold += (item.quantity || 1)
-            productMap[item.id].revenue += (item.price * (item.quantity || 1))
+            productMap[key].totalSold += (item.quantity || 1)
+            productMap[key].revenue += (item.price * (item.quantity || 1))
           })
         })
 
@@ -334,8 +364,8 @@ export default function VendorAnalytics() {
                         <div key={index} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className={`w-3 h-3 rounded-full ${status.name === "delivered" ? "bg-green-500" :
-                                status.name === "cancelled" ? "bg-red-500" :
-                                  "bg-blue-500"
+                              status.name === "cancelled" ? "bg-red-500" :
+                                "bg-blue-500"
                               }`}></div>
                             <p className="capitalize">{status.name.replace(/_/g, ' ')}</p>
                           </div>

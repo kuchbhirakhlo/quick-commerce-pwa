@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase/config"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -64,8 +64,10 @@ interface Order {
   deliveryPersonId?: string
 }
 
-export default function AdminOrderDetail({ params }: { params: { id: string } }) {
+export default function AdminOrderDetail() {
   const router = useRouter()
+  const params = useParams<{ id: string }>()
+  const id = (params?.id as unknown as string) || ""
   const { toast } = useToast()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
@@ -75,8 +77,8 @@ export default function AdminOrderDetail({ params }: { params: { id: string } })
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const orderDoc = await getDoc(doc(db, "orders", params.id))
-        
+        const orderDoc = await getDoc(doc(db, "orders", id))
+
         if (orderDoc.exists()) {
           const orderData = { id: orderDoc.id, ...orderDoc.data() } as Order
           setOrder(orderData)
@@ -101,7 +103,7 @@ export default function AdminOrderDetail({ params }: { params: { id: string } })
     }
 
     fetchOrder()
-  }, [params.id, toast])
+  }, [id, toast])
 
   const handleUpdateStatus = async () => {
     if (!order || selectedStatus === order.orderStatus) return
@@ -115,12 +117,12 @@ export default function AdminOrderDetail({ params }: { params: { id: string } })
       })
 
       setOrder(prev => prev ? { ...prev, orderStatus: selectedStatus as any } : null)
-      
+
       toast({
         title: "Status updated",
         description: `Order status has been updated to ${ORDER_STATUS_LABELS[selectedStatus as keyof typeof ORDER_STATUS_LABELS]}.`,
       })
-      
+
       // Send notification to vendor if possible
       // This would typically be done via a cloud function
     } catch (error) {
@@ -218,9 +220,9 @@ export default function AdminOrderDetail({ params }: { params: { id: string } })
                     <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
-                
+
                 <Separator />
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Subtotal</span>
                   <span>₹{(order.totalAmount - order.deliveryFee).toFixed(2)}</span>
@@ -285,9 +287,9 @@ export default function AdminOrderDetail({ params }: { params: { id: string } })
                   ))}
                 </SelectContent>
               </Select>
-              
-              <Button 
-                className="w-full" 
+
+              <Button
+                className="w-full"
                 onClick={handleUpdateStatus}
                 disabled={updatingStatus || selectedStatus === order.orderStatus}
               >

@@ -31,7 +31,16 @@ export default function VendorDetailsPage() {
 
   const fetchVendorDetails = async () => {
     try {
-      const vendorDoc = await getDoc(doc(db, "vendors", params.id as string))
+      if (!db) {
+        console.error("Firestore is not initialized")
+        return
+      }
+      const id = params?.id as string | undefined
+      if (!id) {
+        console.error("Missing vendor id in route params")
+        return
+      }
+      const vendorDoc = await getDoc(doc(db, "vendors", id))
       if (vendorDoc.exists()) {
         setVendor({ id: vendorDoc.id, ...vendorDoc.data() } as Vendor)
       }

@@ -7,19 +7,20 @@ export const metadata = {
   description: "Search for products in our store",
 }
 
-export default function SearchPage({
+export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { q: string }
+  searchParams: Promise<{ q?: string }>
 }) {
-  const query = searchParams.q || ""
+  const { q = "" } = await searchParams
+  const query = q || ""
 
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">
         {query ? `Search results for "${query}"` : "Search Results"}
       </h1>
-      
+
       <Suspense fallback={
         <div className="flex justify-center py-12">
           <Loader2 className="h-10 w-10 animate-spin text-gray-500" />

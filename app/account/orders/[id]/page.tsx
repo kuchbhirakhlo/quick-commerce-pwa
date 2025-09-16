@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import Header from "@/components/header"
 import { useAuth } from "@/lib/context/auth-context"
 import LoginModal from "@/components/auth/login-modal"
@@ -9,9 +9,11 @@ import { ArrowLeft, Check, Clock, Package, Truck, AlertTriangle } from "lucide-r
 import { getOrderById } from "@/lib/firebase/firestore"
 import type { Order } from "@/lib/firebase/firestore"
 
-export default function OrderDetailsPage({ params }: { params: { id: string } }) {
+export default function OrderDetailsPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const params = useParams<{ id: string }>()
+  const id = (params?.id as unknown as string) || ""
   const [mounted, setMounted] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [order, setOrder] = useState<Order | null>(null)
@@ -20,10 +22,10 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
   // Fetch order details
   useEffect(() => {
     const fetchOrder = async () => {
-      if (user?.uid && params.id) {
+      if (user?.uid && id) {
         try {
           setIsLoading(true)
-          const orderData = await getOrderById(params.id)
+          const orderData = await getOrderById(id)
 
           if (orderData && orderData.userId === user.uid) {
             setOrder(orderData)
@@ -42,7 +44,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
     if (user) {
       fetchOrder()
     }
-  }, [user, params.id, router])
+  }, [user, id, router])
 
   // Redirect if not logged in
   useEffect(() => {

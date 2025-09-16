@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { signInWithGoogle } from "@/lib/firebase/auth"
 import { useRouter } from "next/navigation"
 import { getAuth, getRedirectResult } from "firebase/auth"
-import { LoginModal } from "@/components/auth/login-modal"
+import LoginModal from "@/components/auth/login-modal"
 
 export default function AuthDebugPage() {
   const { user, loading, refreshAuthState } = useAuth()
@@ -27,7 +27,7 @@ export default function AuthDebugPage() {
           sessionStorage: {},
           localStorage: {},
         }
-        
+
         // Check for redirect info
         if (typeof window !== "undefined") {
           const auth = getAuth()
@@ -47,7 +47,7 @@ export default function AuthDebugPage() {
             console.error("Error getting redirect result:", error)
             setRedirectInfo({ error })
           }
-          
+
           // Get session storage items
           try {
             for (let i = 0; i < sessionStorage.length; i++) {
@@ -59,7 +59,7 @@ export default function AuthDebugPage() {
           } catch (e) {
             info.sessionStorage = { error: "Could not access sessionStorage" }
           }
-          
+
           // Get local storage items
           try {
             for (let i = 0; i < localStorage.length; i++) {
@@ -77,13 +77,13 @@ export default function AuthDebugPage() {
             info.localStorage = { error: "Could not access localStorage" }
           }
         }
-        
+
         setDebugInfo(info)
       } catch (error) {
         console.error("Error collecting debug info:", error)
       }
     }
-    
+
     collectDebugInfo()
   }, [])
 
@@ -102,7 +102,7 @@ export default function AuthDebugPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Authentication Debug Page</h1>
-      
+
       <div className="grid gap-6">
         <Card>
           <CardHeader>
@@ -122,9 +122,9 @@ export default function AuthDebugPage() {
                   <p><strong>Phone:</strong> {user.phoneNumber || "N/A"}</p>
                   {user.photoURL && (
                     <div className="mt-2">
-                      <img 
-                        src={user.photoURL} 
-                        alt="User" 
+                      <img
+                        src={user.photoURL}
+                        alt="User"
                         className="w-10 h-10 rounded-full"
                       />
                     </div>
@@ -134,7 +134,7 @@ export default function AuthDebugPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         {redirectInfo && (
           <Card>
             <CardHeader>
@@ -148,7 +148,7 @@ export default function AuthDebugPage() {
             </CardContent>
           </Card>
         )}
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Authentication Actions</CardTitle>
@@ -171,7 +171,7 @@ export default function AuthDebugPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Debug Information</CardTitle>
@@ -184,7 +184,7 @@ export default function AuthDebugPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
     </div>
   )

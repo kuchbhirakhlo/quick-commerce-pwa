@@ -81,7 +81,7 @@ export default function AdminOrders() {
 
   useEffect(() => {
     setLoading(true)
-    
+
     // Get all orders
     const ordersQuery = query(
       collection(db, "orders"),
@@ -93,17 +93,17 @@ export default function AdminOrders() {
       ordersQuery,
       (snapshot) => {
         const ordersData = snapshot.docs.map(doc => {
-          const data = doc.data() as Order;
+          const data = doc.data() as Omit<Order, 'id'>;
           return {
             id: doc.id,
             ...data
-          };
+          } as Order;
         });
 
         // Check for new orders in the last 5 minutes
         const fiveMinutesAgo = new Date();
         fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
-        
+
         const newOrders = ordersData.filter(order => {
           if (!order.createdAt) return false;
           const orderDate = order.createdAt.toDate();
@@ -122,7 +122,7 @@ export default function AdminOrders() {
             });
           }
           setNewOrdersCount(newOrders.length);
-          
+
           // Request notification permission and show browser notification
           if (typeof window !== 'undefined' && 'Notification' in window) {
             Notification.requestPermission().then(permission => {
@@ -222,8 +222,8 @@ export default function AdminOrders() {
                       'Unknown date'
 
                     return (
-                      <TableRow 
-                        key={order.id} 
+                      <TableRow
+                        key={order.id}
                         className={`cursor-pointer hover:bg-gray-50 ${order.orderStatus === 'pending' ? 'bg-yellow-50' : ''}`}
                         onClick={() => handleOrderClick(order.id)}
                       >

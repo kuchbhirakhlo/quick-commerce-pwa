@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, ChangeEvent } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -48,7 +48,7 @@ interface ProductData {
   status: "active" | "out_of_stock" | "deleted"
 }
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
+export default function EditProductPage() {
   const router = useRouter()
   const { vendor } = useVendor()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -64,18 +64,18 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [imageUploadMode, setImageUploadMode] = useState<'file' | 'url'>('file')
   const [imageUrl, setImageUrl] = useState<string>('')
-  
-  // Unwrap params object using React.use()
-  const unwrappedParams = React.use(params)
-  const productId = unwrappedParams.id
-  
+
+  // Read route param id
+  const routeParams = useParams<{ id: string }>()
+  const productId = (routeParams?.id as unknown as string) || ""
+
   // Prevent clipboard errors in some browsers
   useEffect(() => {
     // Suppress clipboard-related errors
     const originalConsoleError = console.error;
     console.error = (...args) => {
       if (
-        typeof args[0] === 'string' && 
+        typeof args[0] === 'string' &&
         (args[0].includes('clipboard') || args[0].includes('Clipboard'))
       ) {
         // Ignore clipboard-related errors
@@ -114,7 +114,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           // Return mock data after a short delay to simulate API call
           setTimeout(() => {
             const mockProduct: ProductData = {
-              id: unwrappedParams.id,
+              id: productId,
               name: 'Test Product',
               description: 'This is a test product description.',
               category: 'grocery',
@@ -143,7 +143,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             setOriginalProduct(mockProduct);
             setIsLoading(false);
           }, 500);
-          
+
           // Mock categories
           setCategories([
             { id: "fruits-vegetables", name: "Fruits & Vegetables", icon: "" },
@@ -152,13 +152,13 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             { id: "meat", name: "Meat & Poultry", icon: "" },
             { id: "grocery", name: "Grocery & Staples", icon: "" },
           ]);
-          
+
           setLoadingCategories(false);
           return;
         }
 
         // Fetch the real product from Firestore
-        const productDoc = await getDoc(doc(db, "products", unwrappedParams.id));
+        const productDoc = await getDoc(doc(db, "products", productId));
 
         if (!productDoc.exists()) {
           throw new Error("Product not found");
@@ -185,19 +185,19 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         setSelectedPincodes(productData.pincodes || []);
         setImagePreview(productData.image || null);
         setOriginalProduct(productData);
-        
+
         // Fetch categories
         const categoriesQuery = query(collection(db, "categories"), orderBy("name"))
         const categoriesSnapshot = await getDocs(categoriesQuery)
-        
+
         const categoriesData = categoriesSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Category[]
-        
+
         setCategories(categoriesData)
         setLoadingCategories(false)
-        
+
       } catch (error: any) {
         console.error("Error loading product:", error);
         setError(error.message || "Failed to load product");
@@ -261,7 +261,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const handleImageUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value
     setImageUrl(url)
-    
+
     // If the URL is valid, update the preview
     if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
       setImagePreview(url)
@@ -311,8 +311,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     }
 
     // Only check Cloudinary configuration if we're uploading a new image
-    if ((imageUploadMode === 'file' && imageFile || imageUploadMode === 'url' && imageUrl) && 
-        !isCloudinaryConfigured()) {
+    if ((imageUploadMode === 'file' && imageFile || imageUploadMode === 'url' && imageUrl) &&
+      !isCloudinaryConfigured()) {
       setError("Cloudinary is not properly configured. Please contact the administrator.")
       setIsSubmitting(false)
       return
@@ -371,12 +371,12 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               vendorId: vendor.id
             }),
           });
-          
+
           if (!uploadResult.ok) {
             const errorData = await uploadResult.json();
             throw new Error(errorData.message || 'Failed to upload from URL');
           }
-          
+
           const data = await uploadResult.json();
           imageUrl = data.url;
           imagePublicId = data.public_id;
@@ -649,7 +649,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                   <label htmlFor="upload-url">Image URL</label>
                 </div>
               </div>
-              
+
               <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 mb-4">
                 {imagePreview ? (
                   <div className="relative h-48 w-48 mb-4">

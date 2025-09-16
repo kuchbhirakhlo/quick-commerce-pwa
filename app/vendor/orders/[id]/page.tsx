@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useVendor } from "@/lib/context/vendor-provider";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
@@ -75,16 +75,17 @@ interface Order {
   deliveryPersonId?: string;
 }
 
-export default function OrderDetail({ params }: { params: { id: string } }) {
+export default function OrderDetail() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const { vendor } = useVendor();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Get the order ID from params
-  const orderId = params.id;
+  const orderId = (params?.id as unknown as string) || "";
 
   useEffect(() => {
     if (!vendor || !orderId) return;
@@ -97,7 +98,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
 
         if (orderDoc.exists()) {
           const orderData = orderDoc.data();
-          
+
           // Check if this order belongs to the current vendor
           if (orderData.vendorId && orderData.vendorId !== vendor.id) {
             console.error("Order does not belong to this vendor");
@@ -105,7 +106,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
             setLoading(false);
             return;
           }
-          
+
           // Ensure all required fields exist with defaults
           const safeOrderData = {
             id: orderDoc.id,
@@ -135,18 +136,18 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
             notes: orderData.notes || "",
             updatedAt: orderData.updatedAt
           };
-          
+
           // Check if order has address and items
           if (!orderData.address) {
             console.error("Order is missing address data");
             setError("Order data is incomplete. Missing address information.");
           }
-          
+
           if (!orderData.items || orderData.items.length === 0) {
             console.error("Order has no items");
             setError("Order data is incomplete. No items found.");
           }
-          
+
           setOrder(safeOrderData as Order);
         } else {
           console.error("Order not found");
@@ -246,7 +247,7 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Orders
         </Button>
-        
+
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
@@ -264,8 +265,8 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
   }
 
   // Safely format date
-  const formattedDate = order.createdAt?.toDate ? 
-    new Date(order.createdAt.toDate()).toLocaleString() : 
+  const formattedDate = order.createdAt?.toDate ?
+    new Date(order.createdAt.toDate()).toLocaleString() :
     'Unknown date';
 
   const nextStatus = getNextStatus();
@@ -360,8 +361,8 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
               <CardContent>
                 <div className="flex flex-wrap gap-3">
                   {nextStatus && (
-                    <Button 
-                      onClick={() => handleUpdateStatus(nextStatus)} 
+                    <Button
+                      onClick={() => handleUpdateStatus(nextStatus)}
                       disabled={updating || order.orderStatus === "cancelled"}
                     >
                       Mark as {ORDER_STATUS_LABELS[nextStatus as keyof typeof ORDER_STATUS_LABELS] || nextStatus}
@@ -369,9 +370,9 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
                   )}
 
                   {order.orderStatus !== "cancelled" && order.orderStatus !== "delivered" && (
-                    <Button 
-                      variant="destructive" 
-                      onClick={handleCancelOrder} 
+                    <Button
+                      variant="destructive"
+                      onClick={handleCancelOrder}
                       disabled={updating}
                     >
                       Cancel Order
@@ -438,12 +439,12 @@ export default function OrderDetail({ params }: { params: { id: string } }) {
                 <div>
                   <Badge className={
                     order.paymentStatus === "paid" ? "bg-green-100 text-green-800" :
-                    order.paymentStatus === "failed" ? "bg-red-100 text-red-800" :
-                    "bg-yellow-100 text-yellow-800"
+                      order.paymentStatus === "failed" ? "bg-red-100 text-red-800" :
+                        "bg-yellow-100 text-yellow-800"
                   }>
                     {order.paymentStatus === "paid" ? "Paid" :
-                     order.paymentStatus === "failed" ? "Failed" :
-                     "Pending"}
+                      order.paymentStatus === "failed" ? "Failed" :
+                        "Pending"}
                   </Badge>
                 </div>
               </div>

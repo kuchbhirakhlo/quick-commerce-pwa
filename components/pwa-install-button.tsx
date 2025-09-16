@@ -9,6 +9,12 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed', platform: string }>
 }
 
+declare global {
+  interface Navigator {
+    standalone?: boolean
+  }
+}
+
 interface PWAInstallButtonProps {
   variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive"
   className?: string
@@ -16,9 +22,9 @@ interface PWAInstallButtonProps {
   label?: string
 }
 
-export default function PWAInstallButton({ 
-  variant = "default", 
-  className = "", 
+export default function PWAInstallButton({
+  variant = "default",
+  className = "",
   size = "default",
   label = "Install App"
 }: PWAInstallButtonProps) {
@@ -28,8 +34,8 @@ export default function PWAInstallButton({
 
   useEffect(() => {
     // Check if the app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches || 
-        window.navigator.standalone === true) {
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true) {
       setIsInstalled(true)
       return
     }
@@ -64,13 +70,13 @@ export default function PWAInstallButton({
 
     // Wait for the user to respond to the prompt
     const choiceResult = await deferredPrompt.userChoice
-    
+
     if (choiceResult.outcome === 'accepted') {
       console.log('User accepted the install prompt')
     } else {
       console.log('User dismissed the install prompt')
     }
-    
+
     // Clear the deferredPrompt as it can only be used once
     setDeferredPrompt(null)
   }

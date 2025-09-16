@@ -26,17 +26,17 @@ export class NotificationService {
   private notificationPermission: NotificationPermission = 'default';
   private soundEnabled: boolean = true;
   private audio: HTMLAudioElement | null = null;
-  
+
   private constructor() {
     if (typeof window !== 'undefined') {
       // Initialize audio element
       this.audio = new Audio(NOTIFICATION_SOUND_URL);
-      
+
       // Check notification permission
       if ('Notification' in window) {
         this.notificationPermission = Notification.permission;
       }
-      
+
       // Load sound preference from localStorage
       const soundPref = localStorage.getItem('vendor_notification_sound');
       if (soundPref !== null) {
@@ -44,7 +44,7 @@ export class NotificationService {
       }
     }
   }
-  
+
   /**
    * Get singleton instance
    */
@@ -54,7 +54,7 @@ export class NotificationService {
     }
     return NotificationService.instance;
   }
-  
+
   /**
    * Request notification permission
    */
@@ -62,7 +62,7 @@ export class NotificationService {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       return false;
     }
-    
+
     try {
       const result = await requestNotificationPermission();
       this.notificationPermission = Notification.permission;
@@ -72,14 +72,14 @@ export class NotificationService {
       return false;
     }
   }
-  
+
   /**
    * Check if notifications are enabled
    */
   public areNotificationsEnabled(): boolean {
     return this.notificationPermission === 'granted';
   }
-  
+
   /**
    * Toggle notification sound
    */
@@ -89,35 +89,35 @@ export class NotificationService {
     } else {
       this.soundEnabled = !this.soundEnabled;
     }
-    
+
     // Save preference
     if (typeof window !== 'undefined') {
       localStorage.setItem('vendor_notification_sound', this.soundEnabled.toString());
     }
-    
+
     return this.soundEnabled;
   }
-  
+
   /**
    * Check if sound is enabled
    */
   public isSoundEnabled(): boolean {
     return this.soundEnabled;
   }
-  
+
   /**
    * Play notification sound
    */
   public playSound(): void {
     if (!this.soundEnabled || !this.audio) return;
-    
+
     // Reset and play
     this.audio.currentTime = 0;
     this.audio.play().catch(err => {
       console.error('Error playing notification sound:', err);
     });
   }
-  
+
   /**
    * Play order notification sound
    * Used specifically for new orders in the dashboard
@@ -128,7 +128,7 @@ export class NotificationService {
       this.playSound();
     }
   }
-  
+
   /**
    * Show a notification
    */
@@ -136,13 +136,13 @@ export class NotificationService {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       return false;
     }
-    
+
     // Check permission
     if (this.notificationPermission !== 'granted') {
       const granted = await this.requestPermission();
       if (!granted) return false;
     }
-    
+
     try {
       // Show notification
       const notification = new Notification(options.title, {
@@ -151,16 +151,15 @@ export class NotificationService {
         badge: options.badge || '/icons/icon-72x72.png',
         tag: options.tag || 'vendor-notification',
         data: options.data || {},
-        requireInteraction: options.requireInteraction || true,
-        renotify: options.renotify || true,
-        silent: options.silent || false
+        requireInteraction: options.requireInteraction ?? true,
+        silent: options.silent ?? false
       });
-      
+
       // Play sound
       if (this.soundEnabled) {
         this.playSound();
       }
-      
+
       // Handle notification click
       notification.onclick = () => {
         if (options.data?.url) {
@@ -171,14 +170,14 @@ export class NotificationService {
         }
         notification.close();
       };
-      
+
       return true;
     } catch (error) {
       console.error('Error showing notification:', error);
       return false;
     }
   }
-  
+
   /**
    * Show a new order notification
    */

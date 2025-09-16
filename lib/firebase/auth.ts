@@ -260,6 +260,26 @@ export async function signInWithPhoneNumber(phoneNumber: string, recaptchaVerifi
       }
     }
 
+    // Basic environment checks to prevent opaque internal errors
+    if (typeof window !== "undefined") {
+      const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      const isHttps = window.location.protocol === "https:";
+      if (!isLocalhost && !isHttps) {
+        return {
+          success: false,
+          error: new Error("Phone auth requires HTTPS in production. Please use https:// on your domain."),
+          code: 'auth/needs-https'
+        };
+      }
+
+      // Firebase Auth requires your domain to be authorized in Firebase Console → Authentication → Settings → Authorized domains
+      const authDomain = (auth as any)?.app?.options?.authDomain as string | undefined;
+      if (authDomain && window.location.hostname && !authDomain.includes(window.location.hostname)) {
+        // Not definitive, but provide a helpful hint
+        console.warn("Current hostname may not be authorized for Firebase Auth:", window.location.hostname, "vs", authDomain);
+      }
+    }
+
     // PRODUCTION: Use actual Firebase authentication
     console.log("Using real Firebase phone authentication")
     if (!auth) {
@@ -341,6 +361,17 @@ export async function signInWithPhoneNumber(phoneNumber: string, recaptchaVerifi
         };
       }
 
+      if (smsError.code === 'auth/internal-error') {
+        // Provide actionable guidance for common misconfigurations
+        return {
+          success: false,
+          error: new Error(
+            "Phone auth failed due to configuration. Ensure: 1) Phone sign-in is enabled in Firebase Auth, 2) Your site is served over HTTPS (or localhost), 3) Your domain is added under Firebase Auth → Authorized domains, 4) reCAPTCHA can load (no ad/cookie blockers)."
+          ),
+          code: 'auth/internal-error'
+        };
+      }
+
       throw smsError; // Re-throw to be caught by the outer catch block
     }
   } catch (error: any) {
@@ -385,6 +416,18 @@ export async function signInWithPhoneNumber(phoneNumber: string, recaptchaVerifi
             error: new Error("Network error. Please check your internet connection and try again."),
             code: error.code
           };
+        case 'auth/operation-not-allowed':
+          return {
+            success: false,
+            error: new Error("Phone sign-in is not enabled in your Firebase project. Enable it in Authentication → Sign-in method."),
+            code: error.code
+          };
+        case 'auth/unauthorized-domain':
+          return {
+            success: false,
+            error: new Error("This domain is not authorized for Firebase Auth. Add it in Authentication → Settings → Authorized domains."),
+            code: error.code
+          };
         default:
           return {
             success: false,
@@ -409,6 +452,14 @@ export async function signInWithPhoneNumber(phoneNumber: string, recaptchaVerifi
           success: false,
           error: new Error("Network error. Please check your internet connection and try again."),
           code: 'network-error'
+        };
+      }
+
+      if (error.message.includes('HTTPS')) {
+        return {
+          success: false,
+          error,
+          code: 'auth/needs-https'
         };
       }
     }
