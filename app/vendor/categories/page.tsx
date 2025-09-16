@@ -12,9 +12,6 @@ import { Label } from "@/components/ui/label"
 import { AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import AddCategoryDialog from "@/components/vendor/add-category-dialog"
-import ManageCategoryDialog from "@/components/vendor/manage-category-dialog"
-import ImportCategoriesDialog from "@/components/vendor/import-categories-dialog"
 import Image from "next/image"
 
 interface Category {
@@ -65,16 +62,16 @@ export default function VendorCategoriesPage() {
           ...doc.data()
         })) as DbCategory[]
         setDbCategories(fetchedCategories)
-        
+
         // Create a mapping of category IDs to names and icons for quick lookup
-        const categoryMap: Record<string, {name: string, icon?: string}> = {}
+        const categoryMap: Record<string, { name: string, icon?: string }> = {}
         fetchedCategories.forEach(cat => {
           categoryMap[cat.id] = {
             name: cat.name,
             icon: cat.icon
           }
         })
-        
+
         // Then, fetch vendor's products
         const productsQuery = query(
           collection(db, "products"),
@@ -95,7 +92,7 @@ export default function VendorCategoriesPage() {
           const categoryId = product.category
           const categoryInfo = categoryMap[categoryId] || { name: categoryId }
           const pincodes = product.pincodes || []
-          
+
           if (!vendorCategoryMap.has(categoryId)) {
             vendorCategoryMap.set(categoryId, {
               id: categoryId,
@@ -107,7 +104,7 @@ export default function VendorCategoriesPage() {
           } else {
             const existingCategory = vendorCategoryMap.get(categoryId)!
             existingCategory.productCount++
-            
+
             // Add unique pincodes
             pincodes.forEach((pincode: string) => {
               if (!existingCategory.pincodes.includes(pincode)) {
@@ -124,7 +121,7 @@ export default function VendorCategoriesPage() {
         if (vendor.pincodes && vendor.pincodes.length > 0) {
           setSelectedPincode(vendor.pincodes[0])
         }
-        
+
       } catch (error: any) {
         setError(`Error loading categories: ${error.message}`)
       } finally {
@@ -142,9 +139,9 @@ export default function VendorCategoriesPage() {
 
   // Filter global categories based on search term
   const filteredDbCategories = searchTerm
-    ? dbCategories.filter(category => 
-        category.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? dbCategories.filter(category =>
+      category.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     : dbCategories
 
   // Handler to refresh data after adding a new category
@@ -164,7 +161,7 @@ export default function VendorCategoriesPage() {
           console.error("Error refreshing categories:", error)
         }
       }
-      
+
       fetchGlobalCategories()
     }
   }
@@ -181,9 +178,13 @@ export default function VendorCategoriesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
         <h1 className="text-xl sm:text-2xl font-bold">Categories</h1>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <ImportCategoriesDialog onSuccess={handleCategoryAdded} />
-          <AddCategoryDialog onSuccess={handleCategoryAdded} />
+        <div className="w-full sm:w-auto">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Category creation and editing is restricted to admins. Vendors can manage their products only.
+            </AlertDescription>
+          </Alert>
         </div>
       </div>
 
@@ -282,7 +283,7 @@ export default function VendorCategoriesPage() {
                 </Card>
               ))}
             </div>
-            
+
             {/* Desktop view - table */}
             <div className="hidden md:block border rounded-md">
               <Table>
@@ -371,12 +372,7 @@ export default function VendorCategoriesPage() {
                     <h3 className="font-medium">{category.name}</h3>
                     <p className="text-xs text-gray-500">ID: {category.id}</p>
                   </div>
-                  <div className="ml-auto">
-                    <ManageCategoryDialog 
-                      category={category} 
-                      onSuccess={handleCategoryAdded}
-                    />
-                  </div>
+                  {/* Actions disabled for vendors */}
                 </div>
               </CardContent>
             </Card>
@@ -391,13 +387,12 @@ export default function VendorCategoriesPage() {
                 <TableHead>Icon</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>ID</TableHead>
-                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredDbCategories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4">
+                  <TableCell colSpan={3} className="text-center py-4">
                     <p className="text-gray-500">No categories found</p>
                   </TableCell>
                 </TableRow>
@@ -418,12 +413,6 @@ export default function VendorCategoriesPage() {
                     </TableCell>
                     <TableCell className="font-medium">{category.name}</TableCell>
                     <TableCell className="font-mono text-xs">{category.id}</TableCell>
-                    <TableCell className="text-right">
-                      <ManageCategoryDialog 
-                        category={category} 
-                        onSuccess={handleCategoryAdded}
-                      />
-                    </TableCell>
                   </TableRow>
                 ))
               )}

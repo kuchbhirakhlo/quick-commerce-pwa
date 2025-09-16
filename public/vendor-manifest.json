@@ -2,7 +2,7 @@
   "name": "Quick Commerce Vendor",
   "short_name": "QC Vendor",
   "description": "Manage your Quick Commerce vendor account and orders",
-  "start_url": "/vendor",
+  "start_url": "/vendor/login",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#10b981",
@@ -27,16 +27,26 @@
       "short_name": "Orders",
       "description": "View and manage your orders",
       "url": "/vendor/orders",
-      "icons": [{ "src": "/icons/vendor-orders.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/vendor-orders.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Products",
       "short_name": "Products",
       "description": "Manage your products",
       "url": "/vendor/products",
-      "icons": [{ "src": "/icons/vendor-products.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/vendor-products.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ],
   "related_applications": [],
   "prefer_related_applications": false
-} 
+}

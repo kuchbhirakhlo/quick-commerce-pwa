@@ -9,6 +9,7 @@ const urlsToCache = [
   '/manifest.json',
   '/admin-manifest.json',
   '/vendor-manifest.json',
+  '/vendor/login',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/admin-icon-192x192.png',
@@ -66,7 +67,10 @@ self.addEventListener('fetch', event => {
             // Add to cache
             caches.open(CACHE_NAME)
               .then(cache => {
-                cache.put(event.request, responseToCache);
+                // Avoid caching POST requests, etc.
+                if (event.request.method === 'GET') {
+                  cache.put(event.request, responseToCache);
+                }
               });
 
             return response;

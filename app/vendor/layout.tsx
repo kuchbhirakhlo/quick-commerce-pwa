@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { BarChart3, Home, Package, Settings, ShoppingBag, User, Menu, X, BellRing, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import PWAInstallButton from "@/components/pwa-install-button"
 import { VendorProvider, useVendor } from "@/lib/context/vendor-provider"
 import { Sidebar } from "@/components/vendor/sidebar"
 import Spinner from "@/components/ui/spinner"
@@ -96,6 +97,21 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
 
   return (
     <VendorProvider>
+      <Script id="force-vendor-manifest" strategy="beforeInteractive">
+        {`
+          try {
+            var link = document.querySelector('link[rel="manifest"]');
+            if (link) {
+              link.setAttribute('href', '/vendor-manifest.json');
+            } else {
+              var newLink = document.createElement('link');
+              newLink.setAttribute('rel', 'manifest');
+              newLink.setAttribute('href', '/vendor-manifest.json');
+              document.head.appendChild(newLink);
+            }
+          } catch (e) { /* noop */ }
+        `}
+      </Script>
       <Head>
         <link rel="manifest" href="/vendor-manifest.json" />
         <meta name="theme-color" content="#10b981" />
@@ -117,8 +133,9 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                     <ShoppingBag className="mr-2 h-5 w-5" />
                     <span>Vendor Portal</span>
                   </Link>
-                  
+
                   <div className="flex items-center gap-4">
+                    <PWAInstallButton variant="outline" size="sm" label="Install" />
                     <Link href="/vendor/orders" className="relative">
                       <BellRing className="h-5 w-5 text-white hover:text-blue-200 transition-colors" />
                       {newOrdersCount > 0 && (
@@ -127,7 +144,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                         </span>
                       )}
                     </Link>
-                    
+
                     <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                       <SheetTrigger asChild>
                         <Button variant="ghost" size="icon" className="md:hidden text-white hover:bg-blue-700">
@@ -146,7 +163,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                 </div>
               </div>
             </header>
-            
+
             <div className="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
               {/* Desktop sidebar - hidden on mobile */}
               <aside className="fixed top-0 z-30 hidden h-screen w-[220px] border-r bg-gradient-to-b from-indigo-50 via-blue-50 to-white px-2 py-4 md:sticky md:block lg:w-[240px]">
@@ -158,7 +175,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                 </div>
                 <Sidebar />
               </aside>
-              
+
               <main className="relative flex-1 py-6 md:gap-10 md:py-8">
                 {children}
               </main>
@@ -167,7 +184,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         )}
       </VendorAuthRedirect>
       <Toaster />
-      
+
       {/* Notification sound preload */}
       <Script id="notification-preload" strategy="afterInteractive">
         {`
