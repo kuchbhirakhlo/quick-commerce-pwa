@@ -22,13 +22,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     try {
       setIsLoggingOut(true)
       const auth = getAuth()
-      
+
       // First remove cookie to prevent redirect loops
       Cookies.remove("admin_session")
-      
+
       // Then sign out from Firebase
       await auth.signOut()
-      
+
       // Delay navigation slightly to ensure state updates complete
       setTimeout(() => {
         router.push("/admin/login")
@@ -69,7 +69,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex">
         <aside className="w-64 bg-gray-900 text-white p-4 hidden md:block">
           <div className="mb-8">
-            <h1 className="text-xl font-bold">QuickMart Admin</h1>
+            <h1 className="text-xl font-bold">Buzzat Admin</h1>
           </div>
 
           <nav className="space-y-1">
@@ -136,19 +136,19 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   0
                 </span>
               </Link>
-            <div className="md:hidden">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-              >
-                {isLoggingOut ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-current"></div>
-                ) : (
-                  <LogOut size={18} />
-                )}
-              </Button>
+              <div className="md:hidden">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                >
+                  {isLoggingOut ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-current"></div>
+                  ) : (
+                    <LogOut size={18} />
+                  )}
+                </Button>
               </div>
             </div>
           </header>

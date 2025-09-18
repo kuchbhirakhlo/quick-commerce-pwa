@@ -1,6 +1,6 @@
 {
   "name": "Quick Commerce",
-  "short_name": "QuickMart",
+  "short_name": "Buzzat",
   "description": "Get groceries and essentials delivered in minutes",
   "start_url": "/",
   "display": "standalone",
@@ -27,14 +27,24 @@
       "short_name": "Orders",
       "description": "View your order history",
       "url": "/account/orders",
-      "icons": [{ "src": "/icons/orders.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/orders.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "My Account",
       "short_name": "Account",
       "description": "Manage your account",
       "url": "/account",
-      "icons": [{ "src": "/icons/account.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/account.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ],
   "related_applications": [],

@@ -1,14 +1,14 @@
 [
   {
     "id": "1",
-    "title": "Pizza & Burgers",
+    "title": "Best Pizzas in Your Area",
     "imageUrl": "https://img.freepik.com/premium-photo/flat-lay-arrangement-with-burgers-pizza_926199-1948802.jpg?w=1060",
     "link": "/category/beast-burgers-rQ8mPN5NT1uVufCWXVAh",
     "position": "top"
   },
   {
     "title": "Home Services",
-    "imageUrl": "https://img.freepik.com/free-vector/plumber-repairing-pipe-burst-woman-phoning-service-stop-house-flooding_74855-14142.jpg?t=st=1757511376~exp=1757514976~hmac=1ddcd79f7e1a45fcb0750a2f5354a4e1e98dc45a79603b1b2983575d4b8846a2&w=1060",
+    "imageUrl": "https://res.cloudinary.com/dwfctknuj/image/upload/v1758187904/tuap9sa8tlcvxqacxknu.jpg",
     "link": "/category/services",
     "position": "middle",
     "id": "1747896472828",

@@ -2,20 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { collection, getDocs, query, where, Firestore } from "firebase/firestore"
+import { collection, onSnapshot, Firestore } from "firebase/firestore"
 import { db } from "@/lib/firebase/firebase-client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Package, ShoppingBag, Users, BarChart3 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   BarChart,
   Bar
@@ -28,6 +28,7 @@ interface DashboardStats {
   totalProducts: number
   totalOrders: number
   pendingOrders: number
+  totalRevenue: number
 }
 
 // Dynamically import the PWA install button with no SSR
@@ -42,11 +43,12 @@ export default function AdminDashboard() {
     totalProducts: 0,
     totalOrders: 0,
     pendingOrders: 0,
+    totalRevenue: 0,
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
-  
+
   // Sample data for charts
   const salesData = [
     { name: "Jan", sales: 4000 },
@@ -58,43 +60,63 @@ export default function AdminDashboard() {
   ]
 
   useEffect(() => {
-    fetchDashboardStats()
+    setLoading(true)
+    setError(null)
+    if (!db) {
+      setError("Firebase is not initialized")
+      setLoading(false)
+      return
+    }
+
+    const vendorsRef = collection(db, "vendors")
+    const unsubVendors = onSnapshot(vendorsRef, (snapshot) => {
+      const totalVendors = snapshot.size
+      const activeVendors = snapshot.docs.filter((doc) => doc.data().status === "active").length
+      setStats((prev) => ({ ...prev, totalVendors, activeVendors }))
+    }, (error) => {
+      console.error("Error listening to vendors:", error)
+      setError(error.message)
+    })
+
+    const productsRef = collection(db, "products")
+    const unsubProducts = onSnapshot(productsRef, (snapshot) => {
+      setStats((prev) => ({ ...prev, totalProducts: snapshot.size }))
+    }, (error) => {
+      console.error("Error listening to products:", error)
+      setError(error.message)
+    })
+
+    const ordersRef = collection(db, "orders")
+    const unsubOrders = onSnapshot(ordersRef, (snapshot) => {
+      const totalOrders = snapshot.size
+      const pendingOrders = snapshot.docs.filter((doc) => doc.data().status === "pending").length
+      let totalRevenue = 0
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data()
+        if (data.status !== "pending" && typeof data.total === "number") {
+          totalRevenue += data.total
+        }
+      })
+      setStats((prev) => ({
+        ...prev,
+        totalOrders,
+        pendingOrders,
+        totalRevenue
+      }))
+    }, (error) => {
+      console.error("Error listening to orders:", error)
+      setError(error.message)
+    })
+
+    setLoading(false)
+
+    return () => {
+      unsubVendors()
+      unsubProducts()
+      unsubOrders()
+    }
   }, [])
 
-  const fetchDashboardStats = async () => {
-    try {
-      setError(null)
-
-      // Verify Firebase connection
-      if (!db) {
-        throw new Error("Firebase is not initialized")
-      }
-
-      // Fetch vendors stats
-      const vendorsSnapshot = await getDocs(collection(db as Firestore, "vendors"))
-      const vendors = vendorsSnapshot.docs.map(doc => doc.data())
-
-      // Fetch products stats
-      const productsSnapshot = await getDocs(collection(db as Firestore, "products"))
-
-      // Fetch orders stats
-      const ordersSnapshot = await getDocs(collection(db as Firestore, "orders"))
-      const orders = ordersSnapshot.docs.map(doc => doc.data())
-
-      setStats({
-        totalVendors: vendors.length,
-        activeVendors: vendors.filter(v => v.status === "active").length,
-        totalProducts: productsSnapshot.size,
-        totalOrders: orders.length,
-        pendingOrders: orders.filter(o => o.status === "pending").length,
-      })
-    } catch (error: any) {
-      console.error("Error fetching dashboard stats:", error)
-      setError(error.message || "Failed to fetch dashboard data")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -112,7 +134,7 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="text-red-500 mb-4">Error: {error}</div>
-          <Button onClick={fetchDashboardStats}>Retry</Button>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
       </div>
     )
@@ -122,13 +144,13 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       {/* PWA Install Button */}
       <div className="fixed bottom-8 right-4 z-50">
-        <PWAInstallButton 
-          variant="default" 
+        <PWAInstallButton
+          variant="default"
           className="bg-blue-500 hover:bg-blue-600 shadow-lg"
-          label="Install Admin App" 
+          label="Install Admin App"
         />
       </div>
-      
+
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -142,38 +164,55 @@ export default function AdminDashboard() {
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Revenue Card */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
+                <div className="flex items-center">
+                  <BarChart3 className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₹42,500</div>
-                <p className="text-xs text-green-500 flex items-center mt-1">
-                  +12% from last month
-                </p>
+                <div className="text-2xl font-bold">₹{stats.totalRevenue.toLocaleString() || 0}</div>
               </CardContent>
             </Card>
+            {/* Vendors Card */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Orders</CardTitle>
+                <div className="flex items-center">
+                  <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Vendors</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">285</div>
-                <p className="text-xs text-green-500 flex items-center mt-1">
-                  +8% from last month
-                </p>
+                <div className="text-2xl font-bold">{stats.totalVendors}</div>
+                <p className="text-xs text-muted-foreground mt-1">Active: {stats.activeVendors}</p>
               </CardContent>
             </Card>
+            {/* Products Card */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Customers</CardTitle>
+                <div className="flex items-center">
+                  <Package className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Products</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">152</div>
-                <p className="text-xs text-green-500 flex items-center mt-1">
-                  +18% from last month
-                </p>
+                <div className="text-2xl font-bold">{stats.totalProducts}</div>
+              </CardContent>
+            </Card>
+            {/* Orders Card */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center">
+                  <ShoppingBag className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Orders</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalOrders}</div>
+                <p className="text-xs text-muted-foreground mt-1">Pending: {stats.pendingOrders}</p>
               </CardContent>
             </Card>
           </div>
