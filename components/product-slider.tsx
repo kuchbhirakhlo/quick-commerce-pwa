@@ -105,7 +105,16 @@ export default function ProductSlider({ category }: { category: string }) {
             <Link href={`/product/${product.id}`} className="group flex-1">
               <div className="relative h-32 w-full mb-2 overflow-hidden">
                 <div className="h-full w-full">
-                  <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-contain" />
+                  <Image
+                    src={product.image && product.image.startsWith('http') ? product.image : "/placeholder.svg"}
+                    alt={product.name}
+                    fill
+                    className="object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/placeholder.svg";
+                    }}
+                  />
                 </div>
               </div>
               <h3 className="font-medium text-gray-800 line-clamp-2">{product.name}</h3>

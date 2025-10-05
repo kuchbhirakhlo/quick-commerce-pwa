@@ -137,8 +137,8 @@ export default function CheckoutForm() {
     setIsEditingAddress(true)
     setIsAddingNewAddress(false)
     setAddressFormData({
-      name: address.name,
-      phone: address.phone,
+      name: formData.name || address.name,
+      phone: formData.phone || address.phone,
       address: address.address,
       pincode: address.pincode,
       city: address.city,
@@ -149,19 +149,19 @@ export default function CheckoutForm() {
   // Save the address
   const saveAddress = () => {
     if (!user?.uid) return;
-    // Validate name and phone
-    if (!addressFormData.name.trim()) {
-      toast({ title: "Name Required", description: "Please enter your name.", variant: "destructive" });
+    // Validate name and phone from main form
+    if (!formData.name.trim()) {
+      toast({ title: "Name Required", description: "Please enter your name in the Customer Information section.", variant: "destructive" });
       return;
     }
-    if (!addressFormData.phone.trim() || !/^\d{10}$/.test(addressFormData.phone.trim())) {
-      toast({ title: "Mobile Number Required", description: "Please enter a valid 10-digit mobile number.", variant: "destructive" });
+    if (!formData.phone.trim() || !/^\d{10}$/.test(formData.phone.trim())) {
+      toast({ title: "Mobile Number Required", description: "Please enter a valid 10-digit mobile number in the Customer Information section.", variant: "destructive" });
       return;
     }
     const newAddresses = [...savedAddresses];
     const addressData = {
-      name: addressFormData.name,
-      phone: addressFormData.phone,
+      name: formData.name,
+      phone: formData.phone,
       address: addressFormData.address,
       pincode: addressFormData.pincode,
       city: addressFormData.city,
@@ -274,8 +274,8 @@ export default function CheckoutForm() {
               // Create a new address
               const newAddress: SavedAddress = {
                 id: `addr_${Date.now()}`,
-                name: formData.name || user?.displayName || "",
-                phone: formData.phone || user?.phoneNumber?.replace('+91', '') || "",
+                name: formData.name,
+                phone: formData.phone,
                 address: foundAddress,
                 pincode: foundPincode || formData.pincode,
                 city: foundCity || "",
@@ -421,6 +421,43 @@ export default function CheckoutForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Customer Information */}
+      <div className="bg-white p-4 rounded-lg shadow-sm">
+        <h2 className="text-base font-semibold mb-3">Customer Information</h2>
+
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <Label htmlFor="name" className="text-sm">Full Name *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter your full name"
+              className="mt-1"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="phone" className="text-sm">Phone Number *</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="Enter your 10-digit mobile number"
+              className="mt-1"
+              required
+            />
+          </div>
+
+          {(!formData.name.trim() || !formData.phone.trim()) && (
+            <p className="text-xs text-amber-600 mt-1">
+              Please fill in your name and phone number to proceed with address selection
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Delivery Address */}
       <div className="bg-white p-4 rounded-lg shadow-sm">
         <h2 className="text-base font-semibold mb-3">Delivery Address</h2>
@@ -455,7 +492,7 @@ export default function CheckoutForm() {
             <Button
               type="button"
               onClick={getCurrentLocation}
-              disabled={isLoadingAddress}
+              disabled={isLoadingAddress || !formData.name.trim() || !formData.phone.trim()}
               variant="outline"
               size="sm"
               className="flex items-center h-8"
@@ -519,6 +556,7 @@ export default function CheckoutForm() {
                 <Button
                   type="button"
                   onClick={startNewAddress}
+                  disabled={!formData.name.trim() || !formData.phone.trim()}
                   variant="outline"
                   className="w-full flex items-center justify-center"
                 >
@@ -529,7 +567,7 @@ export default function CheckoutForm() {
                 <Button
                   type="button"
                   onClick={getCurrentLocation}
-                  disabled={isLoadingAddress}
+                  disabled={isLoadingAddress || !formData.name.trim() || !formData.phone.trim()}
                   variant="outline"
                   className="w-full flex items-center justify-center"
                 >
@@ -575,25 +613,6 @@ export default function CheckoutForm() {
                     </div>
                   </div>
 
-                  <div className="col-span-2">
-                    <Label htmlFor="name" className="text-sm">Full Name</Label>
-                    <Input
-                      id="name"
-                      value={addressFormData.name}
-                      onChange={handleAddressChange}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="col-span-2">
-                    <Label htmlFor="phone" className="text-sm">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      value={addressFormData.phone}
-                      onChange={handleAddressChange}
-                      className="mt-1"
-                    />
-                  </div>
 
                   <div className="col-span-2">
                     <Label htmlFor="address" className="text-sm">Address</Label>
@@ -642,7 +661,7 @@ export default function CheckoutForm() {
                     type="button"
                     onClick={saveAddress}
                     className={getButtonClass(pathname)}
-                    disabled={!addressFormData.address || !addressFormData.pincode}
+                    disabled={!addressFormData.address || !addressFormData.pincode || !formData.name.trim() || !formData.phone.trim()}
                   >
                     Save Address
                   </Button>

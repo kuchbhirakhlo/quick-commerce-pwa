@@ -80,6 +80,7 @@ export default function Header() {
   // Estimate delivery time (would come from admin/backend)
   const [deliveryTime, setDeliveryTime] = useState("8")
   const [openAccountSheet, setOpenAccountSheet] = useState(false)
+  const [openCartSheet, setOpenCartSheet] = useState(false)
   const [avatarBroken, setAvatarBroken] = useState(false)
 
   const getAvatarUrl = (url?: string | null) => {
@@ -475,7 +476,7 @@ export default function Header() {
               {pathname?.startsWith("/category") && <div className="w-1/2 h-1 bg-emerald-600 rounded-full mt-1"></div>}
             </Link>
 
-            <Sheet>
+            <Sheet open={openCartSheet} onOpenChange={setOpenCartSheet}>
               <SheetTrigger asChild>
                 <button className="flex flex-col items-center justify-center w-full py-1 text-gray-500">
                   <div className="flex justify-center relative">
@@ -610,7 +611,7 @@ export default function Header() {
               </Button>
             )}
 
-            <Sheet>
+            <Sheet open={openCartSheet} onOpenChange={setOpenCartSheet}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="relative">
                   <ShoppingCart size={20} />
@@ -668,6 +669,7 @@ export default function Header() {
                               if (!user) {
                                 // Set a flag to redirect to checkout after login
                                 localStorage.setItem("redirect_to_checkout", "true")
+                                setOpenCartSheet(false) // Close cart sheet
                                 setShowLoginModal(true)
                               } else {
                                 router.push('/checkout')

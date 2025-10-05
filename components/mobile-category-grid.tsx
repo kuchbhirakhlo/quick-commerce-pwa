@@ -67,7 +67,7 @@ export default function MobileCategoryGrid() {
   const categories = dbCategories.length > 0 ? dbCategories : [];
 
   // Filter categories to only show those with products for the current pincode
-  const filteredCategories = pincode 
+  const filteredCategories = pincode
     ? categories.filter(category => availableCategoryIds.includes(category.id))
     : categories;
 
@@ -83,8 +83,13 @@ export default function MobileCategoryGrid() {
     return null;
   }
 
-  // Get first rows of categories for mobile display (limit to 6)
-  const mainCategories = filteredCategories.slice(0, 6);
+  // Filter out categories with invalid data and display all valid categories
+  const mainCategories = filteredCategories.filter(category =>
+    category &&
+    category.id &&
+    category.name &&
+    category.name.trim() !== ''
+  );
 
   return (
     <div className="md:hidden">
@@ -100,11 +105,15 @@ export default function MobileCategoryGrid() {
             >
               <div className="flex flex-col items-center">
                 <div className="relative w-16 h-16 mb-2 rounded-full bg-white p-2 shadow-sm border border-gray-100">
-                  <Image 
-                    src={category.icon || "/logo.webp"} 
-                    alt={category.name} 
+                  <Image
+                    src={category.icon && category.icon.startsWith('http') ? category.icon : "/logo.webp"}
+                    alt={category.name}
                     fill
-                    className="object-contain p-1 rounded-full" 
+                    className="object-contain p-1 rounded-full"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/logo.webp";
+                    }}
                   />
                 </div>
                 <span className="text-xs text-center font-medium text-gray-800 mt-1">{category.name}</span>

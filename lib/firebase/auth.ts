@@ -63,7 +63,7 @@ export const initRecaptchaVerifier = async (containerId: string) => {
     });
 
     // Get the container element
-    const container = document.getElementById(containerId);
+    let container = document.getElementById(containerId);
     if (!container) {
       throw new Error(`Container with ID "${containerId}" not found`);
     }
@@ -107,25 +107,34 @@ export const initRecaptchaVerifier = async (containerId: string) => {
       }
     });
 
-    // Wait a brief moment before rendering to ensure DOM is ready
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait for DOM to be ready and container to be visible
+    await new Promise(resolve => setTimeout(resolve, 200));
 
-    // Render the recaptcha to ensure it's ready
-    try {
-      await verifier.render();
-      console.log("reCAPTCHA rendered successfully");
-    } catch (renderError) {
-      console.error("Error rendering reCAPTCHA:", renderError);
+    // Ensure container is still available and visible
+    container = document.getElementById(containerId);
+    if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+      throw new Error("Recaptcha container is not visible or has invalid dimensions");
+    }
 
-      // Try one more time with a delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Render the recaptcha with retry mechanism
+    let renderAttempts = 0;
+    const maxRenderAttempts = 3;
 
+    while (renderAttempts < maxRenderAttempts) {
       try {
         await verifier.render();
-        console.log("reCAPTCHA rendered successfully on second attempt");
-      } catch (secondRenderError) {
-        console.error("Failed to render reCAPTCHA on second attempt:", secondRenderError);
-        throw new Error("Could not initialize verification. Please refresh the page and try again.");
+        console.log("reCAPTCHA rendered successfully");
+        break;
+      } catch (renderError) {
+        renderAttempts++;
+        console.error(`Error rendering reCAPTCHA (attempt ${renderAttempts}/${maxRenderAttempts}):`, renderError);
+
+        if (renderAttempts >= maxRenderAttempts) {
+          throw new Error("Could not initialize verification. Please refresh the page and try again.");
+        }
+
+        // Wait longer between attempts
+        await new Promise(resolve => setTimeout(resolve, 500 * renderAttempts));
       }
     }
 
@@ -356,7 +365,7 @@ export async function signInWithPhoneNumber(phoneNumber: string, recaptchaVerifi
       if (smsError.code === 'auth/captcha-check-failed') {
         return {
           success: false,
-          error: new Error("Verification check failed. Please try again."),
+          error: new Error("reCAPTCHA verification failed. Please complete the captcha and try again."),
           code: 'auth/captcha-check-failed'
         };
       }
@@ -401,7 +410,7 @@ export async function signInWithPhoneNumber(phoneNumber: string, recaptchaVerifi
         case 'auth/captcha-check-failed':
           return {
             success: false,
-            error: new Error("reCAPTCHA verification failed. Please refresh and try again."),
+            error: new Error("reCAPTCHA verification failed. Please complete the captcha challenge and try again."),
             code: error.code
           };
         case 'auth/too-many-requests':
@@ -442,7 +451,7 @@ export async function signInWithPhoneNumber(phoneNumber: string, recaptchaVerifi
       if (error.message.includes('captcha') || error.message.includes('reCAPTCHA')) {
         return {
           success: false,
-          error: new Error("Verification check failed. Please refresh the page and try again."),
+          error: new Error("reCAPTCHA verification failed. Please complete the captcha challenge and try again."),
           code: 'auth/captcha-error'
         };
       }

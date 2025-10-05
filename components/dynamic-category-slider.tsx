@@ -25,18 +25,18 @@ export default function DynamicCategorySlider() {
       try {
         const categoriesQuery = query(collection(db, "categories"), orderBy("name"))
         const categoriesSnapshot = await getDocs(categoriesQuery)
-        
+
         const categoryMapData: Record<string, string> = {};
         categoriesSnapshot.docs.forEach(doc => {
           categoryMapData[doc.id] = doc.data().name;
         });
-        
+
         setCategoryMap(categoryMapData);
       } catch (error) {
         console.error("Error fetching category map:", error)
       }
     };
-    
+
     fetchCategoryMap();
   }, []);
 
@@ -75,13 +75,16 @@ export default function DynamicCategorySlider() {
   if (categories.length === 0) {
     return (
       <div className="py-4 text-center text-gray-500">
-        No products available for your location. Please try another pincode.
+        No categories available for your location. Please try another pincode.
       </div>
     )
   }
 
-  // Limit to 3 categories for mobile view (can be expanded in desktop)
-  const displayCategories = categories.slice(0, 3);
+  // Filter out categories with no products and display all remaining categories
+  const displayCategories = categories.filter(categoryId => {
+    // Only show categories that have products available
+    return categoryMap[categoryId] // Ensure category exists in our mapping
+  });
 
   return (
     <div className="space-y-6">
@@ -89,7 +92,7 @@ export default function DynamicCategorySlider() {
         <div key={categoryId} className="mb-6">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-base font-bold text-gray-800">
-              {categoryMap[categoryId] || 
+              {categoryMap[categoryId] ||
                 categoryId.split("-").map(word =>
                   word.charAt(0).toUpperCase() + word.slice(1)
                 ).join(" ")}

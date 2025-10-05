@@ -58,8 +58,32 @@ const LoginModal = ({ onClose }: { onClose: () => void }) => {
     };
   }, []);
 
+  // Clear loading message when recaptcha is ready
+  useEffect(() => {
+    if (recaptchaRef.current) {
+      const container = document.getElementById("recaptcha-container");
+      if (container) {
+        const loadingDiv = container.querySelector(".text-gray-500");
+        if (loadingDiv) {
+          loadingDiv.remove();
+        }
+      }
+    }
+  }, [recaptchaRef.current]);
+
   const ensureRecaptcha = async () => {
     if (!recaptchaRef.current) {
+      // Ensure the container exists and has proper dimensions before initializing
+      const container = document.getElementById("recaptcha-container");
+      if (!container) {
+        throw new Error("Recaptcha container not found");
+      }
+
+      // Ensure container is visible and has dimensions
+      container.style.width = "100%";
+      container.style.minHeight = "80px";
+      container.style.display = "block";
+
       recaptchaRef.current = await initRecaptchaVerifier("recaptcha-container");
     }
     return recaptchaRef.current;
@@ -220,7 +244,9 @@ const LoginModal = ({ onClose }: { onClose: () => void }) => {
                   className="rounded-l-none"
                 />
               </div>
-              <div id="recaptcha-container" className="mt-2" />
+              <div id="recaptcha-container" className="mt-2 min-h-[80px] flex items-center justify-center bg-gray-50 rounded border">
+                <div className="text-sm text-gray-500">Loading verification...</div>
+              </div>
               <Button className="w-full" disabled={sending} onClick={handleSendCode}>
                 {sending ? "Sending..." : "Send OTP"}
               </Button>
