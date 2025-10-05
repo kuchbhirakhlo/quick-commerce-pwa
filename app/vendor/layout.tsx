@@ -134,13 +134,13 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                     <span>Vendor Portal</span>
                   </Link>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 sm:gap-4">
                     <PWAInstallButton variant="outline" size="sm" label="Install" />
                     <Link href="/vendor/orders" className="relative">
                       <BellRing className="h-5 w-5 text-white hover:text-blue-200 transition-colors" />
                       {newOrdersCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse">
-                          {newOrdersCount}
+                          {newOrdersCount > 9 ? '9+' : newOrdersCount}
                         </span>
                       )}
                     </Link>

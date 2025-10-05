@@ -32,6 +32,11 @@ export class NotificationService {
       // Initialize audio element
       this.audio = new Audio(NOTIFICATION_SOUND_URL);
 
+      // Set maximum volume for louder notifications
+      if (this.audio) {
+        this.audio.volume = 1.0; // Maximum volume for desktop
+      }
+
       // Check notification permission
       if ('Notification' in window) {
         this.notificationPermission = Notification.permission;
@@ -111,11 +116,79 @@ export class NotificationService {
   public playSound(): void {
     if (!this.soundEnabled || !this.audio) return;
 
+    // Ensure maximum volume before playing
+    this.audio.volume = 1.0;
+
     // Reset and play
     this.audio.currentTime = 0;
+
+    // Enhanced mobile audio handling
     this.audio.play().catch(err => {
       console.error('Error playing notification sound:', err);
+
+      // Try alternative approach for mobile devices
+      if (this.isMobileDevice()) {
+        this.playSoundMobile();
+      }
     });
+  }
+
+  /**
+   * Check if device is mobile
+   */
+  private isMobileDevice(): boolean {
+    if (typeof window === 'undefined') return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      (window.innerWidth <= 768 && window.innerHeight <= 1024);
+  }
+
+  /**
+   * Play sound specifically for mobile devices
+   */
+  private playSoundMobile(): void {
+    if (!this.audio) return;
+
+    // Create a new audio instance for mobile
+    const mobileAudio = new Audio(NOTIFICATION_SOUND_URL);
+    mobileAudio.volume = 1.0; // Maximum volume for mobile notifications
+
+    // Use play promise for better mobile handling
+    const playPromise = mobileAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        console.log('Mobile notification sound played successfully');
+      }).catch(error => {
+        console.error('Mobile notification sound failed:', error);
+        // Try system beep as fallback
+        this.systemBeep();
+      });
+    }
+  }
+
+  /**
+   * System beep as ultimate fallback
+   */
+  private systemBeep(): void {
+    try {
+      // Create a simple beep using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+
+      gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+      console.error('System beep failed:', error);
+    }
   }
 
   /**
@@ -155,9 +228,14 @@ export class NotificationService {
         silent: options.silent ?? false
       });
 
-      // Play sound
+      // Play sound and vibration for mobile
       if (this.soundEnabled) {
         this.playSound();
+
+        // Add vibration for mobile devices
+        if (this.isMobileDevice() && !options.silent) {
+          this.triggerVibration();
+        }
       }
 
       // Handle notification click
@@ -175,6 +253,31 @@ export class NotificationService {
     } catch (error) {
       console.error('Error showing notification:', error);
       return false;
+    }
+  }
+
+  /**
+   * Trigger vibration for mobile devices
+   */
+  private triggerVibration(): void {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        // Custom vibration pattern: pause-vibrate-pause-vibrate-pause
+        const vibrationPattern = [200, 100, 200, 100, 200];
+
+        // Use vibration API
+        navigator.vibrate(vibrationPattern);
+
+        // Also try to trigger haptic feedback if available
+        if ('hapticFeedback' in navigator) {
+          (navigator as any).hapticFeedback.impact({ style: 'medium' }).catch(() => {
+            // Fallback to basic vibration if haptic feedback fails
+            console.log('Haptic feedback not available, using basic vibration');
+          });
+        }
+      } catch (error) {
+        console.error('Error triggering vibration:', error);
+      }
     }
   }
 

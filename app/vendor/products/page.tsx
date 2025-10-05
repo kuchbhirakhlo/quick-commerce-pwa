@@ -332,23 +332,32 @@ export default function VendorProductsPage() {
                   </Badge>
                 </div>
                 <div className="border-t flex divide-x">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
+                    className="flex-1 rounded-none h-12"
+                    asChild
+                  >
+                    <Link href={`/vendor/products/edit/${product.id}`}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
                     className="flex-1 rounded-none h-12"
                     onClick={() => startEditingPrice(product.id, product.price)}
                   >
-                    <Edit className="h-4 w-4 mr-2" />
                     Price
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="flex-1 rounded-none h-12"
                     onClick={() => toggleProductStatus(product.id, product.status)}
                   >
                     {product.status === "active" ? "Out" : "In"}
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="flex-1 rounded-none h-12 text-red-600 hover:text-red-700 hover:bg-red-50"
                     onClick={() => setProductToDelete(product)}
                   >
@@ -436,14 +445,25 @@ export default function VendorProductsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setProductToDelete(product)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                        >
+                          <Link href={`/vendor/products/edit/${product.id}`}>
+                            <Edit className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setProductToDelete(product)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

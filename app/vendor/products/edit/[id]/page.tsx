@@ -66,8 +66,8 @@ export default function EditProductPage() {
   const [imageUrl, setImageUrl] = useState<string>('')
 
   // Read route param id
-  const routeParams = useParams<{ id: string }>()
-  const productId = (routeParams?.id as unknown as string) || ""
+  const params = useParams<{ id: string }>()
+  const productId = (params?.id as string) || ""
 
   // Prevent clipboard errors in some browsers
   useEffect(() => {
