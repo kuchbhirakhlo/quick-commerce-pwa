@@ -21,8 +21,13 @@ if ('serviceWorker' in navigator) {
       document.head.appendChild(newManifestLink);
     }
     
-    // Register the service worker
-    navigator.serviceWorker.register('/sw.js')
+    // Register the appropriate service worker based on path
+    let swPath = '/sw.js'; // Default service worker
+    if (window.location.pathname.startsWith('/vendor')) {
+      swPath = '/vendor-sw.js'; // Vendor-specific service worker
+    }
+
+    navigator.serviceWorker.register(swPath)
       .then(function(registration) {
         console.log('ServiceWorker registration successful with scope: ', registration.scope);
         

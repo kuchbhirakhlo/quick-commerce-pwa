@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "./providers"
@@ -11,20 +11,88 @@ import PincodeRequiredModal from "@/components/pincode-required-modal"
 import "@/lib/env"
 const fontClass = "font-sans"
 
-export const metadata: Metadata = {
-  title: "Buzzat - Quick Commerce Delivery",
-  description: "Get groceries and essentials delivered in minutes",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Buzzat",
-  },
-  generator: 'buzzat'
+// Generate metadata based on pathname
+export function generateMetadata({ pathname }: { pathname?: string }): Metadata {
+  const isVendor = pathname?.startsWith('/vendor');
+  const isAdmin = pathname?.startsWith('/admin');
+
+  if (isVendor) {
+    return {
+      title: "Quick Commerce Vendor",
+      description: "Manage your vendor dashboard and orders",
+      manifest: "/vendor-manifest.json",
+      appleWebApp: {
+        capable: true,
+        statusBarStyle: "default",
+        title: "QC Vendor",
+      },
+      generator: 'buzzat'
+    };
+  }
+
+  if (isAdmin) {
+    return {
+      title: "Quick Commerce Admin",
+      description: "Manage your Quick Commerce platform",
+      manifest: "/admin-manifest.json",
+      appleWebApp: {
+        capable: true,
+        statusBarStyle: "default",
+        title: "QC Admin",
+      },
+      generator: 'buzzat'
+    };
+  }
+
+  return {
+    title: "Buzzat - Quick Commerce Delivery",
+    description: "Get groceries and essentials delivered in minutes",
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "Buzzat",
+    },
+    generator: 'buzzat'
+  };
+}
+
+// Generate viewport based on pathname
+export function generateViewport({ pathname }: { pathname?: string }): Viewport {
+  const isVendor = pathname?.startsWith('/vendor');
+  const isAdmin = pathname?.startsWith('/admin');
+
+  if (isVendor) {
+    return {
+      themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "#f59e0b" },
+        { media: "(prefers-color-scheme: dark)", color: "#f59e0b" }
+      ],
+    };
+  }
+
+  if (isAdmin) {
+    return {
+      themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "#3b82f6" },
+        { media: "(prefers-color-scheme: dark)", color: "#3b82f6" }
+      ],
+    };
+  }
+
+  return {
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+      { media: "(prefers-color-scheme: dark)", color: "#ffffff" }
+    ],
+  };
 }
 
 export const viewport = {
-  themeColor: "#ffffff",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#ffffff" }
+  ],
 }
 
 export default function RootLayout({
@@ -52,24 +120,56 @@ export default function RootLayout({
           <Toaster />
         </ThemeProvider>
         <Script src="/service-worker-register.js" strategy="lazyOnload" />
+
+        {/* User notification initialization */}
+        <Script id="user-notification-init" strategy="afterInteractive">
+          {`
+            if (typeof window !== 'undefined') {
+              // Preload notification sound for user app
+              const audio = new Audio('/sounds/new-order.wav');
+              audio.preload = 'auto';
+              audio.volume = 1.0;
+
+              // Store audio globally for user notification service
+              window.userNotificationAudio = audio;
+
+              // Request notification permission for user app
+              if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(function(permission) {
+                  console.log('User notification permission:', permission);
+                  if (permission === 'granted') {
+                    // Play a test sound to ensure audio works
+                    audio.play().catch(e => console.log('User audio test play failed:', e));
+                  }
+                });
+              } else if ('Notification' in window && Notification.permission === 'granted') {
+                console.log('User notification permission already granted');
+              }
+            }
+          `}
+        </Script>
+
         {/* Script to update header/footer visibility on client side */}
         <Script id="update-layout" strategy="afterInteractive">
           {`
             function updateLayoutVisibility() {
               const pathname = window.location.pathname;
-              
+
               // Add appropriate class to body based on URL
               if (pathname.includes('/admin')) {
                 document.body.classList.add('admin-page');
                 document.body.classList.remove('vendor-page');
+                updateManifest('/admin-manifest.json');
               } else if (pathname.includes('/vendor')) {
                 document.body.classList.add('vendor-page');
                 document.body.classList.remove('admin-page');
+                updateManifest('/vendor-manifest.json');
               } else {
                 document.body.classList.remove('admin-page');
                 document.body.classList.remove('vendor-page');
+                updateManifest('/manifest.json');
               }
-              
+
               // Immediately hide footer container on vendor/admin pages
               const footerContainer = document.getElementById('layout-footer-container');
               if (footerContainer) {
@@ -81,6 +181,13 @@ export default function RootLayout({
                   const shouldShow = !noHeaderFooterPaths.some(path => pathname.startsWith(path));
                   footerContainer.style.display = shouldShow ? 'block' : 'none';
                 }
+              }
+            }
+
+            function updateManifest(manifestPath) {
+              const manifestLink = document.querySelector('link[rel="manifest"]');
+              if (manifestLink) {
+                manifestLink.setAttribute('href', manifestPath);
               }
             }
             

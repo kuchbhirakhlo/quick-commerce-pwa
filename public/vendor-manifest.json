@@ -1,11 +1,11 @@
 {
   "name": "Quick Commerce Vendor",
   "short_name": "QC Vendor",
-  "description": "Manage your Quick Commerce vendor account and orders",
+  "description": "Manage your vendor dashboard and orders",
   "start_url": "/vendor/login",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#10b981",
+  "theme_color": "#f59e0b",
   "icons": [
     {
       "src": "/icons/vendor-icon-192x192.png",
@@ -16,16 +16,17 @@
     {
       "src": "/icons/vendor-icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "orientation": "portrait",
   "scope": "/vendor/",
   "shortcuts": [
     {
-      "name": "Orders",
+      "name": "New Orders",
       "short_name": "Orders",
-      "description": "View and manage your orders",
+      "description": "View new orders waiting for confirmation",
       "url": "/vendor/orders",
       "icons": [
         {
@@ -35,13 +36,25 @@
       ]
     },
     {
-      "name": "Products",
+      "name": "My Products",
       "short_name": "Products",
       "description": "Manage your products",
       "url": "/vendor/products",
       "icons": [
         {
           "src": "/icons/vendor-products.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your vendor dashboard",
+      "url": "/vendor/dashboard",
+      "icons": [
+        {
+          "src": "/icons/vendor-dashboard.png",
           "sizes": "96x96"
         }
       ]

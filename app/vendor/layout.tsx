@@ -109,12 +109,23 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
               newLink.setAttribute('href', '/vendor-manifest.json');
               document.head.appendChild(newLink);
             }
+
+            // Update theme color for vendor app
+            var themeColor = document.querySelector('meta[name="theme-color"]');
+            if (themeColor) {
+              themeColor.setAttribute('content', '#f59e0b');
+            } else {
+              var newThemeColor = document.createElement('meta');
+              newThemeColor.setAttribute('name', 'theme-color');
+              newThemeColor.setAttribute('content', '#f59e0b');
+              document.head.appendChild(newThemeColor);
+            }
           } catch (e) { /* noop */ }
         `}
       </Script>
       <Head>
         <link rel="manifest" href="/vendor-manifest.json" />
-        <meta name="theme-color" content="#10b981" />
+        <meta name="theme-color" content="#f59e0b" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="QC Vendor" />
@@ -185,18 +196,103 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
       </VendorAuthRedirect>
       <Toaster />
 
-      {/* Notification sound preload */}
+      {/* Enhanced notification sound preload and service initialization */}
       <Script id="notification-preload" strategy="afterInteractive">
         {`
           if (typeof window !== 'undefined') {
-            // Preload notification sound
-            const audio = new Audio('/sounds/new-order.mp3');
-            audio.preload = 'auto';
-            
-            // Request notification permission if previously granted
-            if ('Notification' in window && Notification.permission === 'granted') {
-              console.log('Notification permission already granted');
-            }
+            // Create multiple audio instances for louder, more reliable playback
+            const createLoudAudio = function() {
+              const audio = new Audio('/sounds/new-order.wav');
+              audio.preload = 'auto';
+              audio.volume = 1.0; // Maximum volume
+
+              // Enable audio enhancements for louder sound
+              audio.mozPreservesPitch = false;
+              audio.webkitPreservesPitch = false;
+
+              return audio;
+            };
+
+            // Create primary audio and backup audio for redundancy
+            window.vendorNotificationAudio = createLoudAudio();
+            window.vendorNotificationAudioBackup = createLoudAudio();
+
+            // Initialize vendor notification service
+            window.vendorNotificationService = null;
+
+            // Enhanced notification permission request with audio unlock
+            const requestVendorNotificationPermission = function() {
+              if ('Notification' in window && Notification.permission === 'default') {
+                return Notification.requestPermission().then(function(permission) {
+                  console.log('Vendor notification permission:', permission);
+
+                  if (permission === 'granted') {
+                    // Try to unlock audio context and play test sound
+                    try {
+                      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                      if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                      }
+
+                      // Play test sound to ensure audio works
+                      const testAudio = createLoudAudio();
+                      testAudio.play().then(() => {
+                        console.log('Vendor audio test successful');
+                      }).catch(e => {
+                        console.log('Vendor audio test failed, but continuing:', e);
+                      });
+                    } catch (e) {
+                      console.log('Audio context not available');
+                    }
+
+                    window.vendorNotificationPermission = 'granted';
+                    return 'granted';
+                  } else {
+                    window.vendorNotificationPermission = 'denied';
+                    return 'denied';
+                  }
+                });
+              } else if ('Notification' in window && Notification.permission === 'granted') {
+                console.log('Vendor notification permission already granted');
+                window.vendorNotificationPermission = 'granted';
+                return Promise.resolve('granted');
+              } else {
+                window.vendorNotificationPermission = 'denied';
+                return Promise.resolve('denied');
+              }
+            };
+
+            // Request permission immediately
+            requestVendorNotificationPermission();
+
+            // Also try to unlock audio on user interaction
+            const unlockAudio = function() {
+              try {
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                  audioContext.resume();
+                }
+
+                // Play a very short silent sound to unlock audio
+                const unlockAudio = createLoudAudio();
+                unlockAudio.volume = 0.01; // Very quiet for unlock
+                unlockAudio.play().then(() => {
+                  console.log('Vendor audio unlocked successfully');
+                }).catch(e => console.log('Audio unlock failed:', e));
+              } catch (e) {
+                console.log('Audio unlock not supported');
+              }
+
+              // Remove listeners after first use
+              document.removeEventListener('click', unlockAudio);
+              document.removeEventListener('touchstart', unlockAudio);
+              document.removeEventListener('keydown', unlockAudio);
+            };
+
+            // Add listeners for user interaction to unlock audio
+            document.addEventListener('click', unlockAudio);
+            document.addEventListener('touchstart', unlockAudio);
+            document.addEventListener('keydown', unlockAudio);
           }
         `}
       </Script>

@@ -92,7 +92,7 @@ export default function VendorOrders() {
 
     setLoading(true)
     setError(null)
-    
+
     // Get orders for this vendor
     const ordersQuery = query(
       collection(db, "orders"),
@@ -110,7 +110,7 @@ export default function VendorOrders() {
               try {
                 const data = doc.data();
                 const docId = doc.id;
-                
+
                 // Create a safe order object with defaults for missing values
                 return {
                   id: docId,
@@ -146,7 +146,7 @@ export default function VendorOrders() {
           // Check for new orders in the last 5 minutes
           const fiveMinutesAgo = new Date();
           fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
-          
+
           const newOrders = ordersData.filter(order => {
             if (!order.createdAt) return false;
             try {
@@ -159,11 +159,16 @@ export default function VendorOrders() {
           });
 
           // Show notification for new orders
-          if (newOrders.length > 0 && newOrders.length !== newOrdersCount) {
-            // Only show notification if the count changed
-            if (newOrdersCount > 0) {
-              const newOrderCount = newOrders.length - newOrdersCount;
-              
+          if (newOrders.length > 0) {
+            const previousCount = newOrdersCount;
+            const currentCount = newOrders.length;
+
+            // Only show notification if the count changed (new orders arrived)
+            if (currentCount > previousCount) {
+              const newOrderCount = currentCount - previousCount;
+
+              console.log(`New orders detected: ${newOrderCount} new orders`);
+
               // Show toast notification
               toast({
                 title: `${newOrderCount} New Order(s)!`,
@@ -171,21 +176,68 @@ export default function VendorOrders() {
                 variant: "default",
                 duration: 5000,
               });
-              
-              // Show browser notification and play sound
-              if (newOrderCount > 0) {
+
+              // Show browser notification and play loud sound
+              if (newOrderCount > 0 && window.vendorNotificationPermission === 'granted') {
                 // Get the newest order
                 const newestOrder = newOrders[0];
                 const orderNumber = newestOrder.id.slice(0, 8).toUpperCase();
-                
-                // Show notification
+
+                console.log('Triggering loud notification for order:', orderNumber);
+
+                // Play loud notification sound first
+                const playLoudNotificationSound = function () {
+                  try {
+                    // Try primary audio first
+                    if (window.vendorNotificationAudio) {
+                      window.vendorNotificationAudio.currentTime = 0;
+                      window.vendorNotificationAudio.volume = 1.0;
+                      window.vendorNotificationAudio.play().catch(err => {
+                        console.log('Primary audio failed, trying backup:', err);
+                        // Try backup audio if primary fails
+                        if (window.vendorNotificationAudioBackup) {
+                          window.vendorNotificationAudioBackup.currentTime = 0;
+                          window.vendorNotificationAudioBackup.volume = 1.0;
+                          window.vendorNotificationAudioBackup.play().catch(err2 => {
+                            console.error('Both audio instances failed:', err2);
+                          });
+                        }
+                      });
+                    }
+                  } catch (err) {
+                    console.error('Error playing notification sound:', err);
+                  }
+                };
+
+                // Play sound immediately
+                playLoudNotificationSound();
+
+                // Show notification with enhanced options
                 notificationService.showNewOrderNotification(
                   newestOrder.id,
                   orderNumber
-                );
+                ).then(success => {
+                  console.log('Notification result:', success);
+                  // Play sound again when notification is shown
+                  if (success) {
+                    playLoudNotificationSound();
+                  }
+                }).catch(err => {
+                  console.error('Notification error:', err);
+                  // Still play sound even if notification fails
+                  playLoudNotificationSound();
+                });
+              } else {
+                console.log('Notification permission not granted or no new orders');
               }
             }
-            setNewOrdersCount(newOrders.length);
+
+            setNewOrdersCount(currentCount);
+          } else {
+            // No new orders, reset count
+            if (newOrdersCount > 0) {
+              setNewOrdersCount(0);
+            }
           }
 
           setOrders(ordersData);
@@ -204,7 +256,7 @@ export default function VendorOrders() {
     );
 
     return () => unsubscribe();
-  }, [vendor, toast, newOrdersCount]);
+  }, [vendor, toast]);
 
   const handleOrderClick = (orderId: string) => {
     router.push(`/vendor/orders/${orderId}`)
@@ -230,7 +282,7 @@ export default function VendorOrders() {
           <p className="text-sm text-gray-500">Manage orders for your delivery areas</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <OrderNotification 
+          <OrderNotification
             newOrdersCount={newOrdersCount}
             onClick={() => setFilterStatus('pending')}
           />
@@ -264,8 +316,8 @@ export default function VendorOrders() {
             <Bell className="h-12 w-12 text-gray-300 mb-4" />
             <h3 className="text-lg font-medium text-center">No orders found</h3>
             <p className="text-sm text-gray-500 text-center mt-2">
-              {filterStatus === "all" 
-                ? "You don't have any orders yet." 
+              {filterStatus === "all"
+                ? "You don't have any orders yet."
                 : `You don't have any ${ORDER_STATUS_LABELS[filterStatus as keyof typeof ORDER_STATUS_LABELS].toLowerCase()} orders.`}
             </p>
             {filterStatus !== "all" && (
@@ -293,7 +345,7 @@ export default function VendorOrders() {
                       {ORDER_STATUS_LABELS[order.orderStatus]}
                     </Badge>
                   </div>
-                  
+
                   <div className="border-t border-gray-100 pt-3 mt-2">
                     <div className="flex justify-between mb-1">
                       <p className="text-sm text-gray-600">Customer:</p>
@@ -316,7 +368,7 @@ export default function VendorOrders() {
               </Card>
             ))}
           </div>
-          
+
           {/* Desktop view - table */}
           <div className="hidden md:block rounded-md border">
             <Table>
@@ -332,9 +384,9 @@ export default function VendorOrders() {
               </TableHeader>
               <TableBody>
                 {filteredOrders.map((order) => (
-                  <TableRow 
-                    key={order.id} 
-                    className="cursor-pointer hover:bg-gray-50" 
+                  <TableRow
+                    key={order.id}
+                    className="cursor-pointer hover:bg-gray-50"
                     onClick={() => handleOrderClick(order.id)}
                   >
                     <TableCell className="font-medium">
@@ -350,7 +402,7 @@ export default function VendorOrders() {
                       </Badge>
                     </TableCell>
                     <TableCell className="capitalize">
-                      {order.paymentMethod} 
+                      {order.paymentMethod}
                       <span className="text-xs ml-1 capitalize">
                         ({order.paymentStatus})
                       </span>

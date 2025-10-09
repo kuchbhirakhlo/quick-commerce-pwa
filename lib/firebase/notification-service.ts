@@ -3,7 +3,10 @@
 import { initMessaging, requestNotificationPermission } from './messaging';
 
 // Notification sound file
-const NOTIFICATION_SOUND_URL = '/sounds/new-order.mp3';
+const NOTIFICATION_SOUND_URL = '/sounds/new-order.wav';
+
+// Notification contexts
+export type NotificationContext = 'user' | 'vendor' | 'admin';
 
 // Interface for notification options
 interface NotificationOptions {
@@ -16,16 +19,18 @@ interface NotificationOptions {
   requireInteraction?: boolean;
   renotify?: boolean;
   silent?: boolean;
+  context?: NotificationContext;
 }
 
 /**
- * Notification Service for vendor order alerts
+ * Universal Notification Service for user and vendor notifications
  */
 export class NotificationService {
   private static instance: NotificationService;
   private notificationPermission: NotificationPermission = 'default';
   private soundEnabled: boolean = true;
   private audio: HTMLAudioElement | null = null;
+  private currentContext: NotificationContext = 'user';
 
   private constructor() {
     if (typeof window !== 'undefined') {
@@ -34,7 +39,7 @@ export class NotificationService {
 
       // Set maximum volume for louder notifications
       if (this.audio) {
-        this.audio.volume = 1.0; // Maximum volume for desktop
+        this.audio.volume = 1.0; // Maximum volume for all notifications
       }
 
       // Check notification permission
@@ -42,11 +47,26 @@ export class NotificationService {
         this.notificationPermission = Notification.permission;
       }
 
-      // Load sound preference from localStorage
-      const soundPref = localStorage.getItem('vendor_notification_sound');
-      if (soundPref !== null) {
-        this.soundEnabled = soundPref === 'true';
-      }
+      // Load sound preference from localStorage (check both user and vendor prefs)
+      this.loadSoundPreferences();
+    }
+  }
+
+  /**
+   * Load sound preferences for current context
+   */
+  private loadSoundPreferences(): void {
+    if (typeof window === 'undefined') return;
+
+    // Check for both user and vendor preferences
+    const userSoundPref = localStorage.getItem('notification_sound');
+    const vendorSoundPref = localStorage.getItem('vendor_notification_sound');
+
+    // Use appropriate preference based on current context
+    const soundPref = this.currentContext === 'vendor' ? vendorSoundPref : userSoundPref;
+
+    if (soundPref !== null) {
+      this.soundEnabled = soundPref === 'true';
     }
   }
 
@@ -58,6 +78,21 @@ export class NotificationService {
       NotificationService.instance = new NotificationService();
     }
     return NotificationService.instance;
+  }
+
+  /**
+   * Set notification context (user, vendor, admin)
+   */
+  public setContext(context: NotificationContext): void {
+    this.currentContext = context;
+    this.loadSoundPreferences(); // Reload preferences for new context
+  }
+
+  /**
+   * Get current notification context
+   */
+  public getContext(): NotificationContext {
+    return this.currentContext;
   }
 
   /**
@@ -95,11 +130,40 @@ export class NotificationService {
       this.soundEnabled = !this.soundEnabled;
     }
 
-    // Save preference
+    // Save preference based on current context
     if (typeof window !== 'undefined') {
-      localStorage.setItem('vendor_notification_sound', this.soundEnabled.toString());
+      const storageKey = this.currentContext === 'vendor'
+        ? 'vendor_notification_sound'
+        : 'notification_sound';
+      localStorage.setItem(storageKey, this.soundEnabled.toString());
     }
 
+    return this.soundEnabled;
+  }
+
+  /**
+   * Toggle sound for specific context
+   */
+  public toggleSoundForContext(context: NotificationContext, enabled?: boolean): boolean {
+    const previousContext = this.currentContext;
+    this.setContext(context);
+
+    if (typeof enabled === 'boolean') {
+      this.soundEnabled = enabled;
+    } else {
+      this.soundEnabled = !this.soundEnabled;
+    }
+
+    // Save preference for this context
+    if (typeof window !== 'undefined') {
+      const storageKey = context === 'vendor'
+        ? 'vendor_notification_sound'
+        : 'notification_sound';
+      localStorage.setItem(storageKey, this.soundEnabled.toString());
+    }
+
+    // Restore previous context
+    this.setContext(previousContext);
     return this.soundEnabled;
   }
 
@@ -217,23 +281,33 @@ export class NotificationService {
     }
 
     try {
+      // Determine icons based on context
+      const context = options.context || this.currentContext;
+      const defaultIcon = context === 'vendor'
+        ? '/icons/vendor-icon-192x192.png'
+        : '/icons/icon-192x192.png';
+      const defaultBadge = context === 'vendor'
+        ? '/icons/vendor-icon-72x72.png'
+        : '/icons/icon-72x72.png';
+      const defaultTag = `${context}-notification`;
+
       // Show notification
       const notification = new Notification(options.title, {
         body: options.body,
-        icon: options.icon || '/icons/icon-192x192.png',
-        badge: options.badge || '/icons/icon-72x72.png',
-        tag: options.tag || 'vendor-notification',
+        icon: options.icon || defaultIcon,
+        badge: options.badge || defaultBadge,
+        tag: options.tag || defaultTag,
         data: options.data || {},
         requireInteraction: options.requireInteraction ?? true,
         silent: options.silent ?? false
       });
 
-      // Play sound and vibration for mobile
-      if (this.soundEnabled) {
+      // Play sound and vibration for mobile (only if not silent)
+      if (this.soundEnabled && !options.silent) {
         this.playSound();
 
         // Add vibration for mobile devices
-        if (this.isMobileDevice() && !options.silent) {
+        if (this.isMobileDevice()) {
           this.triggerVibration();
         }
       }
@@ -282,7 +356,7 @@ export class NotificationService {
   }
 
   /**
-   * Show a new order notification
+   * Show a new order notification for vendors
    */
   public showNewOrderNotification(orderId: string, orderNumber: string): Promise<boolean> {
     return this.showNotification({
@@ -292,10 +366,93 @@ export class NotificationService {
         url: `/vendor/orders/${orderId}`,
         orderId
       },
-      requireInteraction: true
+      requireInteraction: true,
+      context: 'vendor'
     });
+  }
+
+  /**
+   * Show a new order notification for users
+   */
+  public showUserOrderNotification(orderId: string, orderNumber: string, status: string): Promise<boolean> {
+    return this.showNotification({
+      title: 'Order Update!',
+      body: `Your order #${orderNumber} status: ${status}`,
+      data: {
+        url: `/account/orders/${orderId}`,
+        orderId
+      },
+      requireInteraction: true,
+      context: 'user'
+    });
+  }
+
+  /**
+   * Show a general notification for users
+   */
+  public showUserNotification(title: string, body: string, data?: any): Promise<boolean> {
+    return this.showNotification({
+      title,
+      body,
+      data: data || {},
+      requireInteraction: false,
+      context: 'user'
+    });
+  }
+
+  /**
+   * Show a general notification for vendors
+   */
+  public showVendorNotification(title: string, body: string, data?: any): Promise<boolean> {
+    return this.showNotification({
+      title,
+      body,
+      data: data || {},
+      requireInteraction: false,
+      context: 'vendor'
+    });
+  }
+
+  /**
+   * Show notification with context switching
+   */
+  public async showNotificationWithContext(
+    title: string,
+    body: string,
+    context: NotificationContext,
+    data?: any,
+    requireInteraction: boolean = false
+  ): Promise<boolean> {
+    const previousContext = this.currentContext;
+    this.setContext(context);
+
+    const result = await this.showNotification({
+      title,
+      body,
+      data: data || {},
+      requireInteraction,
+      context
+    });
+
+    // Restore previous context
+    this.setContext(previousContext);
+    return result;
   }
 }
 
-// Export singleton instance
-export const notificationService = NotificationService.getInstance(); 
+// Export singleton instance (defaults to user context)
+export const notificationService = NotificationService.getInstance();
+
+// Export vendor-specific instance
+export const vendorNotificationService = (() => {
+  const service = NotificationService.getInstance();
+  service.setContext('vendor');
+  return service;
+})();
+
+// Export user-specific instance
+export const userNotificationService = (() => {
+  const service = NotificationService.getInstance();
+  service.setContext('user');
+  return service;
+})();
