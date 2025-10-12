@@ -2,9 +2,8 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Plus, Search, Filter, Grid, List } from "lucide-react"
+import { Plus, Grid, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { useCart } from "@/lib/hooks/use-cart"
 import { getProductsByPincode } from "@/lib/firebase/firestore"
 import { usePincode } from "@/lib/hooks/use-pincode"
@@ -31,7 +30,6 @@ export default function AllProductsDisplay() {
     const [products, setProducts] = useState<Product[]>([])
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [searchTerm, setSearchTerm] = useState("")
     const [selectedCategory, setSelectedCategory] = useState<string>("all")
     const [viewMode, setViewMode] = useState<ViewMode>('masonry')
     const [sortBy, setSortBy] = useState<SortOption>('name')
@@ -82,14 +80,6 @@ export default function AllProductsDisplay() {
     useEffect(() => {
         let filtered = products
 
-        // Apply search filter
-        if (searchTerm) {
-            filtered = filtered.filter(product =>
-                product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                product.category?.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-        }
-
         // Apply category filter
         if (selectedCategory !== 'all') {
             filtered = filtered.filter(product => product.category === selectedCategory)
@@ -112,7 +102,7 @@ export default function AllProductsDisplay() {
         })
 
         setFilteredProducts(filtered)
-    }, [products, searchTerm, selectedCategory, sortBy])
+    }, [products, selectedCategory, sortBy])
 
     const handleAddToCart = (product: Product) => {
         setLoadingProductId(product.id)
@@ -172,18 +162,8 @@ export default function AllProductsDisplay() {
                 </div>
             </div>
 
-            {/* Search and Filters */}
+            {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                    <Input
-                        placeholder="Search products..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                    />
-                </div>
-
                 <div className="flex gap-2">
                     <select
                         value={selectedCategory}
@@ -213,7 +193,7 @@ export default function AllProductsDisplay() {
             {/* Products Display */}
             {filteredProducts.length === 0 ? (
                 <div className="py-12 text-center">
-                    <p className="text-gray-500">No products match your search criteria.</p>
+                    <p className="text-gray-500">No products available in this category for your location.</p>
                 </div>
             ) : (
                 <div className={`${viewMode === 'masonry'
