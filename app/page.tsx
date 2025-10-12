@@ -3,7 +3,7 @@
 import { Suspense } from "react"
 import Header from "@/components/header"
 import { Skeleton } from "@/components/ui/skeleton"
-import DynamicCategorySlider from "@/components/dynamic-category-slider"
+import AllProductsDisplay from "@/components/all-products-display"
 import CheckPincodeRedirect from "@/components/check-pincode-redirect"
 import BannerCardsDisplay from "@/components/banner-cards-display"
 import MobileCategoryGrid from "@/components/mobile-category-grid"
@@ -38,16 +38,16 @@ export default function Home() {
       <div className="container mx-auto py-2 px-4">
         {/* Check if pincode is serviceable and redirect if not */}
         <CheckPincodeRedirect />
-        
+
         {/* PWA Install Button */}
         <div className="fixed bottom-20 right-4 z-50 md:bottom-8">
-          <PWAInstallButton 
-            variant="default" 
+          <PWAInstallButton
+            variant="default"
             className="customer-btn shadow-lg"
-            label="Install App" 
+            label="Install App"
           />
         </div>
-        
+
         {/* Top banners */}
         <div className="my-4">
           <Suspense fallback={<BannerSkeleton />}>
@@ -69,13 +69,13 @@ export default function Home() {
           </Suspense>
         </div>
 
-        {/* Dynamic Category Slider that shows only categories with available products */}
+        {/* All Products Display - shows all products in creative layout */}
         <div className="my-8">
           <Suspense fallback={<ProductSliderSkeleton />}>
-            <DynamicCategorySlider />
+            <AllProductsDisplay />
           </Suspense>
         </div>
-        
+
         {/* Bottom banners */}
         <div className="my-6">
           <Suspense fallback={<BannerSkeleton />}>
