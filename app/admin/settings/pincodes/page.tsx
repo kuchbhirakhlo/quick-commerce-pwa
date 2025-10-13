@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getGlobalPincodes, addGlobalPincode, removeGlobalPincode } from "@/lib/firebase/admin"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -23,8 +22,12 @@ export default function AdminPincodesPage() {
       try {
         setIsLoading(true)
         setError(null)
-        const globalPincodes = await getGlobalPincodes()
-        setPincodes(globalPincodes)
+        const response = await fetch('/api/admin/pincodes')
+        if (!response.ok) {
+          throw new Error('Failed to fetch pincodes')
+        }
+        const data = await response.json()
+        setPincodes(data.pincodes)
       } catch (err: any) {
         setError(err.message || "Failed to load pincodes")
         console.error("Error loading pincodes:", err)
@@ -60,15 +63,26 @@ export default function AdminPincodesPage() {
 
     try {
       setIsAdding(true)
-      const success = await addGlobalPincode(newPincode)
-      if (success) {
-        setPincodes([...pincodes, newPincode])
-        setNewPincode("")
-        toast({
-          title: "Pincode added",
-          description: `Pincode ${newPincode} has been added successfully`,
-        })
+      const response = await fetch('/api/admin/pincodes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pincode: newPincode }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to add pincode')
       }
+
+      const data = await response.json()
+      setPincodes(data.pincodes)
+      setNewPincode("")
+      toast({
+        title: "Pincode added",
+        description: data.message,
+      })
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -83,14 +97,21 @@ export default function AdminPincodesPage() {
   // Handle removing a pincode
   const handleRemovePincode = async (pincodeToRemove: string) => {
     try {
-      const success = await removeGlobalPincode(pincodeToRemove)
-      if (success) {
-        setPincodes(pincodes.filter(p => p !== pincodeToRemove))
-        toast({
-          title: "Pincode removed",
-          description: `Pincode ${pincodeToRemove} has been removed`,
-        })
+      const response = await fetch(`/api/admin/pincodes?pincode=${pincodeToRemove}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to remove pincode')
       }
+
+      const data = await response.json()
+      setPincodes(data.pincodes)
+      toast({
+        title: "Pincode removed",
+        description: data.message,
+      })
     } catch (err: any) {
       toast({
         variant: "destructive",

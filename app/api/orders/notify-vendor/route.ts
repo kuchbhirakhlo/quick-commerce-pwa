@@ -63,12 +63,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Prepare notification payload
-        const notificationPayload = {
-            title: 'New Order Received! 🎉',
-            body: `Order #${orderNumber} from ${customerName} - ₹${totalAmount.toFixed(2)}`,
-            icon: '/icons/vendor-icon-192x192.png',
-            badge: '/icons/vendor-icon-72x72.png',
-            tag: `new-order-${orderId}`,
+        const message = {
+            notification: {
+                title: 'New Order Received! 🎉',
+                body: `Order #${orderNumber} from ${customerName} - ₹${totalAmount.toFixed(2)}`,
+                icon: '/icons/vendor-icon-192x192.png',
+                badge: '/icons/vendor-icon-72x72.png',
+                tag: `new-order-${orderId}`,
+            },
             data: {
                 orderId,
                 orderNumber,
@@ -77,16 +79,11 @@ export async function POST(request: NextRequest) {
                 url: `/vendor/orders/${orderId}`,
                 click_action: `/vendor/orders/${orderId}`
             },
-            web_push: {
-                fcm_options: {
+            webpush: {
+                fcmOptions: {
                     link: `/vendor/orders/${orderId}`
                 }
-            }
-        };
-        const message = {
-            notification: notificationPayload,
-            data: notificationPayload.data,
-            webpush: notificationPayload.web_push,
+            },
             tokens: tokens
         };
 
