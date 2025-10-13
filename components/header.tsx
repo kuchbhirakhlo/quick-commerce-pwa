@@ -356,9 +356,16 @@ export default function Header() {
       {/* Mobile header */}
       <div className="md:hidden">
         <div className="flex items-center justify-between px-4 h-14">
-          <Link href="/" className="flex items-center">
-            <Image src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png" alt="Buzzat" width={90} height={36} className="h-12 w-auto" priority />
-          </Link>
+           <Link href="/" className="flex items-center">
+      <Image
+        src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png"
+        alt="Buzzat"
+        width={90}
+        height={36}
+        className="h-12 w-auto"
+        priority
+      />
+    </Link>
           {!loading && (
             <div className="ml-auto flex items-center">
               {user ? (
@@ -580,9 +587,16 @@ export default function Header() {
       <div className="hidden md:block">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center">
-              <Image src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png" alt="Buzzat" width={100} height={40} className="h-20" priority />
-            </Link>
+             <Link href="/" className="flex items-center">
+      <Image
+        src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png"
+        alt="Buzzat"
+        width={90}
+        height={36}
+        className="h-12 w-auto"
+        priority
+      />
+    </Link>
 
             <div className="ml-4">
               <PincodeSelector headerStyle={true} />
