@@ -103,6 +103,16 @@ export default function RootLayout({
   // We'll rely on client-side detection for header/footer visibility
   return (
     <html lang="en" className="light" style={{ colorScheme: "light" }} suppressHydrationWarning>
+      <head>
+        {/* AdSense script */}
+        <Script
+          id="adsbygoogle-init"
+          strategy="afterInteractive"
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8434537394521880"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={`${fontClass} min-h-screen flex flex-col`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <Providers>

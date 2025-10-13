@@ -10,6 +10,8 @@ import MobileCategoryGrid from "@/components/mobile-category-grid"
 import dynamic from "next/dynamic"
 import { getButtonClass } from "@/lib/utils"
 
+
+
 // Dynamically import the PWA install button with no SSR
 const PWAInstallButton = dynamic(() => import("@/components/pwa-install-button"), {
   ssr: false

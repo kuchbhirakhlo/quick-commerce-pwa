@@ -79,6 +79,15 @@ export interface Order {
   updatedAt?: Timestamp
 }
 
+export interface Category {
+  id?: string
+  name: string
+  description?: string
+  image?: string
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
+}
+
 // Products
 export const getProductsByPincode = async (pincode: string) => {
   try {
@@ -92,7 +101,7 @@ export const getProductsByPincode = async (pincode: string) => {
       id: doc.id,
       ...doc.data(),
     })) as Product[]
-    
+
     return products;
   } catch (error) {
     console.error("Error getting products by pincode:", error)
@@ -124,7 +133,7 @@ export const isPincodeServiceable = async (pincode: string): Promise<boolean> =>
 export const getCategoriesByPincode = async (pincode: string) => {
   try {
     const products = await getProductsByPincode(pincode);
-    
+
     // Extract unique categories
     const categorySet = new Set<string>();
     products.forEach(product => {
@@ -132,9 +141,9 @@ export const getCategoriesByPincode = async (pincode: string) => {
         categorySet.add(product.category);
       }
     });
-    
+
     const categories = Array.from(categorySet);
-    
+
     return categories;
   } catch (error) {
     console.error("Error getting categories by pincode:", error);
@@ -143,18 +152,18 @@ export const getCategoriesByPincode = async (pincode: string) => {
 }
 
 // Get all categories from the categories collection
-export const getAllCategories = async () => {
+export const getAllCategories = async (): Promise<Category[]> => {
   try {
     const q = query(collection(db, "categories"), orderBy("name"));
     const querySnapshot = await getDocs(q);
-    
+
     const categories = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-    }));
-    
+    })) as Category[];
+
     console.log(`Found ${categories.length} categories in the database`);
-    
+
     return categories;
   } catch (error) {
     console.error("Error getting all categories:", error);
@@ -329,7 +338,7 @@ export const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "u
   try {
     // Group items by vendorId
     const itemsByVendor: Record<string, typeof orderData.items> = {};
-    
+
     // First, get vendor information for each product
     for (const item of orderData.items) {
       try {
@@ -348,7 +357,7 @@ export const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "u
         console.error(`Error getting product info for ${item.productId}:`, err);
       }
     }
-    
+
     // If we couldn't find any vendors, create order as before
     if (Object.keys(itemsByVendor).length === 0) {
       const docRef = await addDoc(collection(db, "orders"), {
@@ -359,16 +368,16 @@ export const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "u
       });
       return { id: docRef.id, ...orderData };
     }
-    
+
     // Create separate orders for each vendor
     const orderIds = [];
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
       // Calculate subtotal for this vendor's items
       const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
-      
+
       // Split the delivery fee among vendors
       const deliveryFeePerVendor = orderData.deliveryFee / Object.keys(itemsByVendor).length;
-      
+
       // Create a new order for this vendor
       const vendorOrderData = {
         ...orderData,
@@ -377,20 +386,20 @@ export const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "u
         totalAmount: subtotal + deliveryFeePerVendor, // Recalculate total
         deliveryFee: deliveryFeePerVendor
       };
-      
+
       const docRef = await addDoc(collection(db, "orders"), {
         ...vendorOrderData,
         orderStatus: "pending",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      
+
       orderIds.push(docRef.id);
     }
-    
+
     // Return the first order ID and a count of total orders created
-    return { 
-      id: orderIds[0], 
+    return {
+      id: orderIds[0],
       orderCount: orderIds.length,
       allOrderIds: orderIds
     };
