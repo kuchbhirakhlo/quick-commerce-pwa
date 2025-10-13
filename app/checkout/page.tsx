@@ -10,6 +10,7 @@ import Image from "next/image"
 import BannerCardsDisplay from "@/components/banner-cards-display"
 import LoginModal from "@/components/auth/login-modal"
 import CheckoutForm from "@/components/checkout/checkout-form"
+import AdsenseAd from "@/components/adsense"
 
 export default function CheckoutPage() {
   const { cartItems, cartCount } = useCart()
@@ -67,6 +68,7 @@ export default function CheckoutPage() {
               >
                 Login
               </Button>
+              <AdsenseAd slot="3968217169" />
             </div>
           </div>
         </div>
@@ -125,6 +127,7 @@ export default function CheckoutPage() {
 
         {/* Checkout Form */}
         <CheckoutForm />
+        <AdsenseAd slot="3968217169" />
 
         {/* Bottom banner */}
         <div className="mt-8">

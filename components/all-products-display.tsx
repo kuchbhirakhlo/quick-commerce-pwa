@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { getButtonClass } from "@/lib/utils"
 import { usePathname } from "next/navigation"
+import AdsenseAd from "./adsense"
 
 interface Product {
     id: string
@@ -218,6 +219,7 @@ export default function AllProductsDisplay() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800">Free Delivery above ₹99 </h2>
+                    <AdsenseAd slot="3968217169" />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -295,6 +297,7 @@ export default function AllProductsDisplay() {
                                     {vendorName}
                                 </h3>
                             </div>
+                            <AdsenseAd slot="3968217169" />
 
                             {/* Vendor Products Grid */}
                             <div className={`${viewMode === 'masonry'
