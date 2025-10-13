@@ -357,7 +357,7 @@ export default function Header() {
       <div className="md:hidden">
         <div className="flex items-center justify-between px-4 h-14">
           <Link href="/" className="flex items-center">
-            <Image src="/logo.webp" alt="Buzzat" width={90} height={36} className="h-12 w-auto" priority />
+            <Image src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png" alt="Buzzat" width={90} height={36} className="h-12 w-auto" priority />
           </Link>
           {!loading && (
             <div className="ml-auto flex items-center">
