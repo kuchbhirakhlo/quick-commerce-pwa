@@ -355,7 +355,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
       {/* Mobile header */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between px-4 h-[6rem]">
+        <div className="flex items-center justify-between px-4 h-24">
            <Link href="/" className="flex items-center">
       <Image
         src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png"
