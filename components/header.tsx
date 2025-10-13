@@ -581,7 +581,7 @@ export default function Header() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
-              <Image src="/logo.webp" alt="Buzzat" width={100} height={40} className="h-20" priority />
+              <Image src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png" alt="Buzzat" width={100} height={40} className="h-20" priority />
             </Link>
 
             <div className="ml-4">
