@@ -355,14 +355,14 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
       {/* Mobile header */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between px-4 h-24">
+        <div className="flex items-center justify-between px-4 h-16">
            <Link href="/" className="flex items-center">
       <Image
         src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png"
         alt="Buzzat"
         width={90}
         height={36}
-        className="h-12 w-auto"
+        className="h-16 w-auto"
         priority
       />
     </Link>
@@ -593,7 +593,7 @@ export default function Header() {
         alt="Buzzat"
         width={90}
         height={36}
-        className="h-12 w-auto"
+        className="h-16 w-auto"
         priority
       />
     </Link>
