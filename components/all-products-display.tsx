@@ -218,7 +218,6 @@ export default function AllProductsDisplay() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <AdsenseAd slot="3968217169" />
                     <h2 className="text-2xl font-bold text-gray-800">Free Delivery above ₹99 </h2>
 
                 </div>
