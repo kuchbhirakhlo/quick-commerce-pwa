@@ -366,6 +366,37 @@ export const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "u
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
+      // Send notification if vendorId is available (only if we're in a server environment)
+      if (typeof window === 'undefined' && orderData.vendorId) {
+        try {
+          const orderNumber = docRef.id.slice(0, 8).toUpperCase();
+
+          const notificationResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/orders/notify-vendor`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              orderId: docRef.id,
+              vendorId: orderData.vendorId,
+              orderNumber,
+              customerName: orderData.address.name,
+              totalAmount: orderData.totalAmount,
+            }),
+          });
+
+          if (notificationResponse.ok) {
+            const notificationResult = await notificationResponse.json();
+            console.log(`Vendor notification sent for order ${docRef.id}:`, notificationResult);
+          } else {
+            console.error(`Failed to send vendor notification for order ${docRef.id}:`, await notificationResponse.text());
+          }
+        } catch (notificationError) {
+          console.error(`Error sending vendor notification for order ${docRef.id}:`, notificationError);
+        }
+      }
+
       return { id: docRef.id, ...orderData };
     }
 
@@ -395,6 +426,39 @@ export const createOrder = async (orderData: Omit<Order, "id" | "createdAt" | "u
       });
 
       orderIds.push(docRef.id);
+
+      // Send notification to vendor (only if we're in a server environment)
+      if (typeof window === 'undefined') {
+        try {
+          // Create order number for notification
+          const orderNumber = docRef.id.slice(0, 8).toUpperCase();
+
+          // Call notification API
+          const notificationResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/orders/notify-vendor`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              orderId: docRef.id,
+              vendorId,
+              orderNumber,
+              customerName: orderData.address.name,
+              totalAmount: subtotal + deliveryFeePerVendor,
+            }),
+          });
+
+          if (notificationResponse.ok) {
+            const notificationResult = await notificationResponse.json();
+            console.log(`Vendor notification sent for order ${docRef.id}:`, notificationResult);
+          } else {
+            console.error(`Failed to send vendor notification for order ${docRef.id}:`, await notificationResponse.text());
+          }
+        } catch (notificationError) {
+          console.error(`Error sending vendor notification for order ${docRef.id}:`, notificationError);
+          // Don't throw error - order creation should succeed even if notification fails
+        }
+      }
     }
 
     // Return the first order ID and a count of total orders created
@@ -438,7 +502,7 @@ export const getOrderById = async (orderId: string) => {
   }
 }
 
-export const updateOrderStatus = async (orderId: string, status: Order["orderStatus"]) => {
+export const updateOrderStatus = async (orderId: string, paymentStatus: string, paymentDetails: { paymentId: any; paymentMethod: string; paymentStatus: string; paymentAmount: number; paymentCurrency: any; bankTransactionId: any; paymentResponse: any; completedAt: string }, status: Order["orderStatus"]) => {
   try {
     const docRef = doc(db, "orders", orderId)
     await updateDoc(docRef, {

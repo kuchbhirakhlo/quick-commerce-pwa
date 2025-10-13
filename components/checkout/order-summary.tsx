@@ -7,8 +7,20 @@ export default function OrderSummary() {
   const { cartItems } = useCart()
 
   const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-  const deliveryFee = 40
-  const total = subtotal + deliveryFee
+
+  // Apply delivery fee logic: 19rs for cart under 99, FREE delivery for 99 and above
+  const deliveryFee = subtotal < 99 ? 19 : 0
+
+  // Apply discount logic
+  let discountAmount = 0
+  if (subtotal >= 199 && subtotal < 499) {
+    discountAmount += subtotal * 0.1 // 10% discount for orders 199-498.99
+  }
+  if (subtotal >= 499) {
+    discountAmount += 50 // 50rs discount for orders 499+
+  }
+
+  const total = subtotal - discountAmount + deliveryFee
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -38,15 +50,24 @@ export default function OrderSummary() {
       <div className="space-y-2 pt-4 border-t">
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Subtotal</span>
-          <span>₹{subtotal}</span>
+          <span>₹{subtotal.toFixed(2)}</span>
         </div>
+
+        {discountAmount > 0 && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span>Discount</span>
+            <span>-₹{discountAmount.toFixed(2)}</span>
+          </div>
+        )}
+
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Delivery Fee</span>
-          <span>₹{deliveryFee}</span>
+          <span>₹{deliveryFee.toFixed(2)}</span>
         </div>
+
         <div className="flex justify-between font-medium text-base mt-4">
           <span>Total</span>
-          <span>₹{total}</span>
+          <span>₹{total.toFixed(2)}</span>
         </div>
       </div>
     </div>

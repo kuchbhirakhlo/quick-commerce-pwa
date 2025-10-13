@@ -41,6 +41,7 @@ export default function CheckoutForm() {
   const { pincode } = usePincode()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [showAddressDialog, setShowAddressDialog] = useState(false)
@@ -52,7 +53,7 @@ export default function CheckoutForm() {
     address: "",
     pincode: pincode || "",
     city: "",
-    deliveryOption: "express",
+    deliveryOption: "standard",
     paymentMethod: "cod",
   })
   const [addressFormData, setAddressFormData] = useState({
@@ -352,8 +353,21 @@ export default function CheckoutForm() {
         return;
       }
       const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-      const deliveryFee = formData.deliveryOption === "standard" ? 40 : 60;
-      const totalAmount = subtotal + deliveryFee;
+
+      // Apply delivery fee logic: 19rs for cart under 99, otherwise standard rate
+      const deliveryFee = subtotal < 99 ? 19 : 0;
+
+      // Apply discount logic
+      let discountAmount = 0;
+      if (subtotal > 199) {
+        discountAmount += subtotal * 0.1; // 10% discount for orders above 199
+      }
+      if (subtotal >= 499) {
+        discountAmount += 50; // Additional 50rs discount for orders 499+
+      }
+
+      const discountedSubtotal = subtotal - discountAmount;
+      const totalAmount = discountedSubtotal + deliveryFee;
       const orderData = {
         userId: user.uid,
         userName: formData.name,
@@ -411,10 +425,133 @@ export default function CheckoutForm() {
     }
   };
 
-  // Calculate order summary
+  // Calculate order summary with discount logic
   const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-  const deliveryFee = formData.deliveryOption === "standard" ? 40 : 60
-  const totalAmount = subtotal + deliveryFee
+
+  // Apply delivery fee logic: 19rs for cart under 99, FREE delivery for 99 and above
+  const deliveryFee = subtotal < 99 ? 19 : 0
+
+  // Apply discount logic
+  let discountAmount = 0
+  if (subtotal >= 199 && subtotal < 499) {
+    discountAmount += subtotal * 0.1 // 10% discount for orders 199-498.99
+  }
+  if (subtotal >= 499) {
+    discountAmount += 50 // 50rs discount for orders 499+
+  }
+
+  const discountedSubtotal = subtotal - discountAmount
+  const totalAmount = discountedSubtotal + deliveryFee
+
+  // Debug logging (remove in production)
+  console.log('Pricing Debug:', {
+    subtotal: subtotal.toFixed(2),
+    deliveryFee: deliveryFee.toFixed(2),
+    discountAmount: discountAmount.toFixed(2),
+    totalAmount: totalAmount.toFixed(2),
+    cartItemsCount: cartItems.length,
+    discountType: subtotal >= 499 ? '₹50' : subtotal >= 199 ? '10%' : 'none',
+    deliveryType: subtotal < 99 ? '₹19' : 'FREE'
+  })
+
+  // Handle Paytm payment initiation
+  const initiatePaytmPayment = async (orderData: any, totalAmount: number) => {
+    setIsProcessingPayment(true);
+    try {
+      const response = await fetch('/api/paytm/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: totalAmount,
+          customerId: user?.uid,
+          userEmail: user?.email,
+          userPhone: formData.phone,
+          orderData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Create order first with pending status
+        const orderResult = await createOrder({
+          ...orderData,
+          paymentStatus: 'pending',
+          paytmOrderId: result.orderId,
+        });
+
+        if (orderResult.id) {
+          // Redirect to Paytm payment page
+          const paytmUrl = `https://securegw-stage.paytm.in/theia/web/checkout/start?mid=${result.paytmParams.MID}&orderId=${result.orderId}`;
+
+          // Open Paytm in new window/tab
+          const paytmWindow = window.open(paytmUrl, '_blank');
+
+          // Monitor payment status
+          const checkPaymentStatus = async () => {
+            try {
+              const statusResponse = await fetch('/api/paytm/status', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  orderId: result.orderId,
+                }),
+              });
+
+              const statusResult = await statusResponse.json();
+
+              if (statusResult.success) {
+                if (statusResult.paymentStatus === 'TXN_SUCCESS') {
+                  clearCart();
+                  toast({
+                    title: "Payment successful!",
+                    description: "Your order has been placed successfully.",
+                  });
+                  router.push(`/checkout/success?orderId=${orderResult.id}`);
+                  return;
+                } else if (statusResult.paymentStatus === 'TXN_FAILURE') {
+                  toast({
+                    title: "Payment failed",
+                    description: "Payment was not completed. Please try again.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+              }
+            } catch (error) {
+              console.error('Error checking payment status:', error);
+            }
+
+            // Check again after 3 seconds if payment is still pending
+            setTimeout(checkPaymentStatus, 3000);
+          };
+
+          // Start checking payment status after 3 seconds
+          setTimeout(checkPaymentStatus, 3000);
+
+          toast({
+            title: "Redirecting to Paytm",
+            description: "You will be redirected to Paytm to complete your payment.",
+          });
+        }
+      } else {
+        throw new Error(result.error || 'Failed to initiate payment');
+      }
+    } catch (error) {
+      console.error("Paytm payment error:", error);
+      toast({
+        title: "Payment Error",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   // Get selected address
   const selectedAddress = savedAddresses.find(addr => addr.id === selectedAddressId)
@@ -676,34 +813,71 @@ export default function CheckoutForm() {
       <div className="bg-white p-4 rounded-lg shadow-sm">
         <h2 className="text-base font-semibold mb-3">Delivery Time</h2>
 
-        <RadioGroup
-          value={formData.deliveryOption}
-          onValueChange={(value) => handleRadioChange("deliveryOption", value)}
-          className="space-y-2"
-        >
-          <div className={`flex items-center p-3 rounded-lg border ${formData.deliveryOption === "express" ? "border-orange-500 bg-orange-50" : "border-gray-200"}`}>
-            <RadioGroupItem value="express" id="express" className="mr-3" />
-            <div className="flex items-start flex-1">
-              <Clock size={18} className="text-green-500 mr-2 mt-0.5" />
-              <div>
-                <Label htmlFor="express" className="font-medium cursor-pointer">Express Delivery</Label>
-                <p className="text-xs text-gray-600">Arrives within 20-45 minutes</p>
-              </div>
-            </div>
+        <div className="flex items-center p-4 rounded-lg border border-orange-500 bg-orange-50">
+          <Clock size={20} className="text-green-500 mr-3" />
+          <div>
+            <Label className="font-medium cursor-pointer">Express Delivery</Label>
+            <p className="text-sm text-gray-600">Arrives within 15 minutes</p>
           </div>
+        </div>
 
-          <div className={`flex items-center p-3 rounded-lg border ${formData.deliveryOption === "standard" ? "border-orange-500 bg-orange-50" : "border-gray-200"}`}>
-            <RadioGroupItem value="standard" id="standard" className="mr-3" />
-            <div className="flex items-start flex-1">
-              <Truck size={18} className="text-green-500 mr-2 mt-0.5" />
-              <div>
-                <Label htmlFor="standard" className="font-medium cursor-pointer">Standard Delivery</Label>
-                <p className="text-xs text-gray-600">Arrives within 45-60 minutes</p>
+        <input type="hidden" name="deliveryOption" value="standard" />
+      </div>
+
+      {/* Promotional Offers */}
+      {subtotal > 0 && (
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+          <h2 className="text-base font-semibold mb-3">Available Offers</h2>
+
+          {subtotal < 99 && (
+            <div className="space-y-2">
+              <div className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="text-blue-600 font-medium">
+                  🚚 Add ₹{(99 - subtotal).toFixed(2)} more to get FREE delivery!
+                </div>
               </div>
             </div>
-          </div>
-        </RadioGroup>
-      </div>
+          )}
+
+          {subtotal >= 99 && subtotal < 199 && (
+            <div className="space-y-2">
+              <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="text-green-600 font-medium">
+                  ✅ FREE delivery applied!
+                </div>
+              </div>
+              <div className="flex items-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="text-orange-600 font-medium">
+                  🎁 Add ₹{(199 - subtotal).toFixed(2)} more to get 10% discount!
+                </div>
+              </div>
+            </div>
+          )}
+
+          {subtotal >= 199 && subtotal < 499 && (
+            <div className="space-y-2">
+              <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="text-green-600 font-medium">
+                  ✅ FREE delivery + 10% discount applied!
+                </div>
+              </div>
+              <div className="flex items-center p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="text-purple-600 font-medium">
+                  💰 Add ₹{(499 - subtotal).toFixed(2)} more to get ₹50 discount!
+                </div>
+              </div>
+            </div>
+          )}
+
+          {subtotal >= 499 && (
+            <div className="flex items-center p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="text-purple-600 font-medium">
+                🎉 FREE delivery + ₹50 discount applied!
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Order Summary */}
       <div className="bg-white p-4 rounded-lg shadow-sm">
@@ -714,10 +888,43 @@ export default function CheckoutForm() {
             <span className="text-gray-600">Subtotal</span>
             <span>₹{subtotal.toFixed(2)}</span>
           </div>
+
+          {discountAmount > 0 && (
+            <div className="flex justify-between text-sm text-green-600">
+              <span>Discount</span>
+              <span>-₹{discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Delivery Fee</span>
             <span>₹{deliveryFee.toFixed(2)}</span>
           </div>
+
+          {subtotal < 99 && (
+            <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+              🎉 Special delivery rate: ₹19 for orders under ₹99!
+            </div>
+          )}
+
+          {subtotal >= 99 && subtotal < 199 && (
+            <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+              🎉 You got FREE delivery! Add ₹{(199 - subtotal).toFixed(2)} more to get 10% discount!
+            </div>
+          )}
+
+          {subtotal >= 199 && subtotal < 499 && (
+            <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+              🎉 You saved ₹{discountAmount.toFixed(2)} (10% discount) + FREE delivery!
+            </div>
+          )}
+
+          {subtotal >= 499 && (
+            <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+              🎉 You saved ₹{discountAmount.toFixed(2)} (₹50 discount) + FREE delivery!
+            </div>
+          )}
+
           <div className="flex justify-between font-medium border-t pt-2 mt-2">
             <span>Total</span>
             <span>₹{totalAmount.toFixed(2)}</span>

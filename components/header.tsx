@@ -500,7 +500,7 @@ export default function Header() {
                     <div className="flex-1 flex flex-col items-center justify-center">
                       <ShoppingCart size={64} className="text-gray-300 mb-4" />
                       <p className="text-gray-500">Your cart is empty</p>
-                      <Button className={`mt-4 ${getButtonClass(pathname)}`}>Start Shopping</Button>
+                      <Button onClick={() => router.push('/category')} className={`mt-4 ${getButtonClass(pathname)}`}>Start Shopping</Button>
                     </div>
                   ) : (
                     <>
@@ -518,24 +518,44 @@ export default function Header() {
                         ))}
                       </div>
                       <div className="border-t pt-4 mt-auto sticky bottom-0 left-0 right-0 bg-white px-4">
-                        <div className="flex justify-between mb-2">
-                          <span>Subtotal</span>
-                          <span>₹{cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between mb-4">
-                          <span>Delivery Fee</span>
-                          <span>₹40.00</span>
-                        </div>
-                        <div className="flex justify-between font-bold mb-4">
-                          <span>Total</span>
-                          <span>₹{(cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 40).toFixed(2)}</span>
-                        </div>
+                        {(() => {
+                          const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                          const deliveryFee = subtotal < 99 ? 19 : 0;
+                          let discountAmount = 0;
+                          if (subtotal >= 199 && subtotal < 499) discountAmount += subtotal * 0.1;
+                          if (subtotal >= 499) discountAmount += 50;
+                          const totalAmount = subtotal - discountAmount + deliveryFee;
+
+                          return (
+                            <>
+                              <div className="flex justify-between mb-2">
+                                <span>Subtotal</span>
+                                <span>₹{subtotal.toFixed(2)}</span>
+                              </div>
+                              {discountAmount > 0 && (
+                                <div className="flex justify-between mb-2 text-green-600">
+                                  <span>Discount</span>
+                                  <span>-₹{discountAmount.toFixed(2)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between mb-4">
+                                <span>Delivery Fee</span>
+                                <span>₹{deliveryFee.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between font-bold mb-4">
+                                <span>Total</span>
+                                <span>₹{totalAmount.toFixed(2)}</span>
+                              </div>
+                            </>
+                          );
+                        })()}
                         <div className="pb-4">
                           <Button
                             className={`w-full ${getButtonClass(pathname)}`}
                             onClick={() => {
                               if (!user) {
                                 localStorage.setItem("redirect_to_checkout", "true")
+                                setOpenCartSheet(false) // Close cart sheet
                                 setShowLoginModal(true)
                               } else {
                                 router.push('/checkout')
@@ -632,7 +652,7 @@ export default function Header() {
                     <div className="flex-1 flex flex-col items-center justify-center">
                       <ShoppingCart size={64} className="text-gray-300 mb-4" />
                       <p className="text-gray-500">Your cart is empty</p>
-                      <Button className={`mt-4 ${getButtonClass(pathname)}`}>Start Shopping</Button>
+                      <Button onClick={() => router.push('/category')} className={`mt-4 ${getButtonClass(pathname)}`}>Start Shopping</Button>
                     </div>
                   ) : (
                     <>
@@ -650,18 +670,37 @@ export default function Header() {
                         ))}
                       </div>
                       <div className="border-t pt-4 mt-auto md:static md:pb-0 sticky bottom-0 left-0 right-0 bg-white px-4 md:px-0">
-                        <div className="flex justify-between mb-2">
-                          <span>Subtotal</span>
-                          <span>₹{cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between mb-4">
-                          <span>Delivery Fee</span>
-                          <span>₹40.00</span>
-                        </div>
-                        <div className="flex justify-between font-bold mb-4">
-                          <span>Total</span>
-                          <span>₹{(cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 40).toFixed(2)}</span>
-                        </div>
+                        {(() => {
+                          const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                          const deliveryFee = subtotal < 99 ? 19 : 0;
+                          let discountAmount = 0;
+                          if (subtotal >= 199 && subtotal < 499) discountAmount += subtotal * 0.1;
+                          if (subtotal >= 499) discountAmount += 50;
+                          const totalAmount = subtotal - discountAmount + deliveryFee;
+
+                          return (
+                            <>
+                              <div className="flex justify-between mb-2">
+                                <span>Subtotal</span>
+                                <span>₹{subtotal.toFixed(2)}</span>
+                              </div>
+                              {discountAmount > 0 && (
+                                <div className="flex justify-between mb-2 text-green-600">
+                                  <span>Discount</span>
+                                  <span>-₹{discountAmount.toFixed(2)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between mb-4">
+                                <span>Delivery Fee</span>
+                                <span>₹{deliveryFee.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between font-bold mb-4">
+                                <span>Total</span>
+                                <span>₹{totalAmount.toFixed(2)}</span>
+                              </div>
+                            </>
+                          );
+                        })()}
                         <div className="pb-20 md:pb-4">
                           <Button
                             className={`w-full ${getButtonClass(pathname)} md:static fixed bottom-4 left-0 right-0 mx-4 md:mx-0 z-10`}
