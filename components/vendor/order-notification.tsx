@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Bell, BellOff, Volume2, VolumeX, Smartphone } from 'lucide-react'
-import { notificationService } from '@/lib/firebase/notification-service'
+import { vendorNotificationService } from '@/lib/firebase/notification-service'
 import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
@@ -32,25 +32,25 @@ export default function OrderNotification({ newOrdersCount, onClick }: OrderNoti
       }
 
       // Get sound preference
-      setSoundEnabled(notificationService.isSoundEnabled())
+      setSoundEnabled(vendorNotificationService.isSoundEnabled())
     }
   }, [])
 
   // Request notification permission
   const requestPermission = async () => {
-    const granted = await notificationService.requestPermission()
+    const granted = await vendorNotificationService.requestPermission()
     setNotificationsEnabled(granted)
   }
 
   // Toggle sound
   const toggleSound = () => {
-    const enabled = notificationService.toggleSound()
+    const enabled = vendorNotificationService.toggleSound()
     setSoundEnabled(enabled)
   }
 
   // Test notification with mobile enhancements
   const testNotification = () => {
-    notificationService.showNotification({
+    vendorNotificationService.showNotification({
       title: 'Test Notification',
       body: 'This is a test notification for new orders.',
     })

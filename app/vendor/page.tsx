@@ -10,7 +10,7 @@ import { db } from "@/lib/firebase/config"
 import { collection, query, where, orderBy, limit, getDocs, onSnapshot } from "firebase/firestore"
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { notificationService } from "@/lib/firebase/notification-service"
+import { notificationService, vendorNotificationService } from "@/lib/firebase/notification-service"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // Dynamically import the PWA install button with no SSR
@@ -143,8 +143,19 @@ export default function VendorDashboard() {
 
           // Check if there are new orders
           if (stats.hasLoaded && recentOrders.length > stats.recentOrders.length) {
-            // Play notification sound for new orders
-            notificationService.playOrderSound();
+            // Show notification and play sound for new orders
+            const newestOrder = recentOrders[0];
+            const orderNumber = newestOrder.id.slice(0, 8).toUpperCase();
+
+            // Show notification if permission is granted
+            if (window.vendorNotificationPermission === 'granted' || Notification.permission === 'granted') {
+              vendorNotificationService.showNewOrderNotification(
+                newestOrder.id,
+                orderNumber
+              ).catch(err => {
+                console.error('Error showing new order notification:', err);
+              });
+            }
           }
 
           setStats(prevStats => ({

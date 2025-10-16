@@ -26,7 +26,7 @@ import {
 import { Bell } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import OrderNotification from "@/components/vendor/order-notification"
-import { notificationService } from "@/lib/firebase/notification-service"
+import { vendorNotificationService } from "@/lib/firebase/notification-service"
 
 const ORDER_STATUS_COLORS = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -178,7 +178,7 @@ export default function VendorOrders() {
               });
 
               // Show browser notification and play loud sound
-              if (newOrderCount > 0 && window.vendorNotificationPermission === 'granted') {
+              if (newOrderCount > 0 && (window.vendorNotificationPermission === 'granted' || Notification.permission === 'granted')) {
                 // Get the newest order
                 const newestOrder = newOrders[0];
                 const orderNumber = newestOrder.id.slice(0, 8).toUpperCase();
@@ -213,7 +213,7 @@ export default function VendorOrders() {
                 playLoudNotificationSound();
 
                 // Show notification with enhanced options
-                notificationService.showNewOrderNotification(
+                vendorNotificationService.showNewOrderNotification(
                   newestOrder.id,
                   orderNumber
                 ).then(success => {

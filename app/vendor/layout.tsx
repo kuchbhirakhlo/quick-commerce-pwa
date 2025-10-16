@@ -12,6 +12,7 @@ import Spinner from "@/components/ui/spinner"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Toaster } from "@/components/ui/toaster"
 import Script from "next/script"
+import Image from "next/image"
 
 // Redirect component that handles vendor authentication status
 function VendorAuthRedirect({ children }: { children: React.ReactNode }) {
@@ -168,10 +169,14 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
               {/* Desktop sidebar - hidden on mobile */}
               <aside className="fixed top-0 z-30 hidden h-screen w-[220px] border-r bg-gradient-to-b from-indigo-50 via-blue-50 to-white px-2 py-4 md:sticky md:block lg:w-[240px]">
                 <div className="mb-6 flex items-center px-4">
-                  <ShoppingBag className="h-6 w-6 text-indigo-600 mr-2" />
-                  <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-blue-700 bg-clip-text text-transparent">
-                    Vendor Portal
-                  </h2>
+                  <Image
+                    src="/icons/vlogo.gif"
+                    alt=""
+                    width={24}
+                    height={24}
+                    className=" rounded-full w-24 h-24"
+                  />
+
                 </div>
                 <Sidebar />
               </aside>
