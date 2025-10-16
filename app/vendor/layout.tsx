@@ -10,7 +10,6 @@ import { VendorProvider, useVendor } from "@/lib/context/vendor-provider"
 import { Sidebar } from "@/components/vendor/sidebar"
 import Spinner from "@/components/ui/spinner"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
-import Head from "next/head"
 import { Toaster } from "@/components/ui/toaster"
 import Script from "next/script"
 
@@ -123,14 +122,6 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
           } catch (e) { /* noop */ }
         `}
       </Script>
-      <Head>
-        <link rel="manifest" href="/vendor-manifest.json" />
-        <meta name="theme-color" content="#f59e0b" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="QC Vendor" />
-        <link rel="apple-touch-icon" href="/icons/vendor-icon-192x192.png" />
-      </Head>
       <VendorAuthRedirect>
         {isLoginPage || isAuthCheckPage ? (
           <main className="h-screen">{children}</main>
@@ -142,11 +133,9 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                 <div className="flex items-center justify-between w-full">
                   <Link href="/vendor" className="font-semibold text-lg flex items-center">
                     <ShoppingBag className="mr-2 h-5 w-5" />
-                    <span>Vendor Portal</span>
+                    <span>Buzzat Partner</span>
                   </Link>
-
                   <div className="flex items-center gap-2 sm:gap-4">
-                    <PWAInstallButton variant="outline" size="sm" label="Install" />
                     <Link href="/vendor/orders" className="relative">
                       <BellRing className="h-5 w-5 text-white hover:text-blue-200 transition-colors" />
                       {newOrdersCount > 0 && (

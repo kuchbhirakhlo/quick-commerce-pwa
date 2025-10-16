@@ -22,7 +22,7 @@ interface Order {
   id: string
   orderNumber: string
   customerName: string
-  total: number
+  totalAmount: number
   orderStatus: string
   createdAt: any
 }
@@ -69,7 +69,7 @@ export default function VendorDashboard() {
     let unsubscribeOrders: () => void;
     let unsubscribeRecentOrders: () => void;
     let unsubscribeProducts: () => void;
-    
+
     const setupListeners = async () => {
       try {
         // For test vendor in development
@@ -86,7 +86,7 @@ export default function VendorDashboard() {
                   id: 'test-order-1',
                   orderNumber: 'ORD12345',
                   customerName: 'John Doe',
-                  total: 420,
+                  totalAmount: 420,
                   orderStatus: 'pending',
                   createdAt: new Date()
                 },
@@ -94,7 +94,7 @@ export default function VendorDashboard() {
                   id: 'test-order-2',
                   orderNumber: 'ORD12346',
                   customerName: 'Jane Smith',
-                  total: 185,
+                  totalAmount: 185,
                   orderStatus: 'confirmed',
                   createdAt: new Date(Date.now() - 3600000)
                 },
@@ -102,7 +102,7 @@ export default function VendorDashboard() {
                   id: 'test-order-3',
                   orderNumber: 'ORD12347',
                   customerName: 'Mike Johnson',
-                  total: 560,
+                  totalAmount: 560,
                   orderStatus: 'delivered',
                   createdAt: new Date(Date.now() - 7200000)
                 }
@@ -115,7 +115,7 @@ export default function VendorDashboard() {
         }
 
         console.log("Setting up real-time listeners for vendor:", vendor.id);
-        
+
         // Create date range for orders (last 30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -127,26 +127,26 @@ export default function VendorDashboard() {
           orderBy("createdAt", "desc"),
           limit(5)
         );
-        
+
         unsubscribeRecentOrders = onSnapshot(recentOrdersQuery, (snapshot) => {
           const recentOrders = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
               id: doc.id,
-              orderNumber: data.orderNumber || `ORD-${doc.id.slice(0,6)}`,
-              customerName: data.customerName || "Customer",
-              total: data.total || 0,
+              orderNumber: doc.id.slice(0, 8).toUpperCase(),
+              customerName: data.address?.name || "Customer",
+              totalAmount: data.totalAmount || 0,
               orderStatus: data.orderStatus || "pending",
               createdAt: data.createdAt?.toDate() || new Date()
-            } as Order;
+            } as unknown as Order;
           });
-          
+
           // Check if there are new orders
           if (stats.hasLoaded && recentOrders.length > stats.recentOrders.length) {
             // Play notification sound for new orders
             notificationService.playOrderSound();
           }
-          
+
           setStats(prevStats => ({
             ...prevStats,
             recentOrders,
@@ -154,14 +154,14 @@ export default function VendorDashboard() {
             lastUpdated: new Date()
           }));
         });
-        
+
         // Real-time listener for all orders
         const ordersQuery = query(
           collection(db, "orders"),
           where("vendorId", "==", vendor.id),
           where("createdAt", ">=", thirtyDaysAgo)
         );
-        
+
         unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
           const orders = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -170,17 +170,17 @@ export default function VendorDashboard() {
               ...data
             } as Order;
           });
-          
+
           // Calculate total revenue
-          const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
-          
+          const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
           // Count pending orders
-          const pendingOrders = orders.filter(order => 
-            order.orderStatus === 'pending' || 
-            order.orderStatus === 'confirmed' || 
+          const pendingOrders = orders.filter(order =>
+            order.orderStatus === 'pending' ||
+            order.orderStatus === 'confirmed' ||
             order.orderStatus === 'preparing'
           ).length;
-          
+
           setStats(prevStats => ({
             ...prevStats,
             totalOrders: snapshot.size,
@@ -190,20 +190,20 @@ export default function VendorDashboard() {
             lastUpdated: new Date()
           }));
         });
-        
+
         // Real-time listener for products
         const productsQuery = query(
           collection(db, "products"),
           where("vendorId", "==", vendor.id)
         );
-        
+
         unsubscribeProducts = onSnapshot(productsQuery, (snapshot) => {
           // Count products with low stock
           const lowStockProducts = snapshot.docs.filter(doc => {
             const data = doc.data();
             return data.stock <= 5; // Consider low stock if 5 or fewer items
           }).length;
-          
+
           setStats(prevStats => ({
             ...prevStats,
             lowStockProducts,
@@ -212,14 +212,14 @@ export default function VendorDashboard() {
             lastUpdated: new Date()
           }));
         });
-        
+
       } catch (error) {
         console.error("Error setting up dashboard listeners:", error);
       }
     };
-    
+
     setupListeners();
-    
+
     // Clean up listeners when component unmounts
     return () => {
       console.log("Cleaning up dashboard listeners");
@@ -228,14 +228,14 @@ export default function VendorDashboard() {
       if (unsubscribeProducts) unsubscribeProducts();
     };
   }, [vendor]);
-  
+
   // Manual refresh function
   const refreshDashboard = () => {
     // This function is just for UI feedback
     // The real-time listeners will automatically update the data
-    setStats(prev => ({...prev, hasLoaded: false}));
+    setStats(prev => ({ ...prev, hasLoaded: false }));
     setTimeout(() => {
-      setStats(prev => ({...prev, hasLoaded: true, lastUpdated: new Date()}));
+      setStats(prev => ({ ...prev, hasLoaded: true, lastUpdated: new Date() }));
     }, 1000);
   };
 
@@ -248,7 +248,7 @@ export default function VendorDashboard() {
         const timer = setTimeout(() => {
           setShowNotificationDemo(true);
         }, 3000);
-        
+
         return () => clearTimeout(timer);
       }
     }
@@ -283,13 +283,13 @@ export default function VendorDashboard() {
     <div className="space-y-6 px-2 sm:px-4 md:px-0 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen pb-8">
       {/* PWA Install Button */}
       <div className="fixed bottom-8 right-4 z-50">
-        <PWAInstallButton 
-          variant="default" 
+        <PWAInstallButton
+          variant="default"
           className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg"
-          label="Install Vendor App" 
+          label="Install Vendor App"
         />
       </div>
-      
+
       <div className="mt-2 sm:mt-0 pt-4 px-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
@@ -304,10 +304,10 @@ export default function VendorDashboard() {
                 <p className="text-xs text-indigo-500">
                   Last updated: {stats.lastUpdated.toLocaleTimeString()}
                 </p>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="ml-2 h-6 w-6 p-0 text-indigo-600" 
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-2 h-6 w-6 p-0 text-indigo-600"
                   onClick={refreshDashboard}
                   disabled={!stats.hasLoaded}
                 >
@@ -318,18 +318,18 @@ export default function VendorDashboard() {
             )}
           </div>
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="border-indigo-200 hover:bg-indigo-50 text-indigo-700"
               onClick={() => router.push("/vendor/profile")}
             >
               <User className="h-4 w-4 mr-1" />
               Profile
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="border-indigo-200 hover:bg-indigo-50 text-indigo-700"
               onClick={() => router.push("/vendor/settings")}
             >
@@ -351,8 +351,8 @@ export default function VendorDashboard() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex flex-wrap gap-2 mt-2">
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                 onClick={() => {
                   notificationService.requestPermission();
@@ -361,7 +361,7 @@ export default function VendorDashboard() {
               >
                 Enable Notifications
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 className="border-amber-300 text-amber-700 hover:bg-amber-100"
                 onClick={() => {
@@ -425,8 +425,8 @@ export default function VendorDashboard() {
             <p className="text-[10px] sm:text-xs text-amber-600">Need attention</p>
           </CardContent>
           <CardFooter className="px-3 sm:px-6 pt-0">
-            <Link 
-              href="/vendor/orders?status=pending,confirmed,preparing" 
+            <Link
+              href="/vendor/orders?status=pending,confirmed,preparing"
               className="text-xs sm:text-sm text-amber-600 hover:underline flex items-center"
             >
               Process orders <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
@@ -440,7 +440,7 @@ export default function VendorDashboard() {
             <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
               <AlertTriangle className="h-4 w-4 text-red-600" />
             </div>
-        </CardHeader>
+          </CardHeader>
           <CardContent className="px-3 sm:px-6 pb-2">
             <div className="text-lg sm:text-2xl font-bold text-red-900">{stats.lowStockProducts}</div>
             <p className="text-[10px] sm:text-xs text-red-600">Out of {stats.productCount}</p>
@@ -477,7 +477,7 @@ export default function VendorDashboard() {
                 {stats.recentOrders.map((order) => (
                   <div key={order.id} className="flex items-start sm:items-center justify-between border-b pb-2 flex-wrap sm:flex-nowrap hover:bg-blue-50 p-2 rounded-md transition-colors">
                     <div className="min-w-0 pr-2">
-                      <Link 
+                      <Link
                         href={`/vendor/orders/${order.id}`}
                         className="font-medium hover:underline line-clamp-1 text-sm sm:text-base text-blue-700"
                       >
@@ -487,23 +487,22 @@ export default function VendorDashboard() {
                         {order.customerName}
                       </div>
                       <div className="text-[10px] sm:text-xs text-gray-500">
-                        {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="font-medium text-sm sm:text-base">₹{order.total}</div>
-                      <div className={`text-[10px] sm:text-xs px-2 py-1 rounded-full inline-block font-medium ${
-                        order.orderStatus === 'pending' ? 'bg-amber-100 text-amber-800' :
+                      <div className="font-medium text-sm sm:text-base">₹{order.totalAmount}</div>
+                      <div className={`text-[10px] sm:text-xs px-2 py-1 rounded-full inline-block font-medium ${order.orderStatus === 'pending' ? 'bg-amber-100 text-amber-800' :
                         order.orderStatus === 'delivered' ? 'bg-green-100 text-green-800' :
-                        order.orderStatus === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
+                          order.orderStatus === 'cancelled' ? 'bg-red-100 text-red-800' :
+                            'bg-blue-100 text-blue-800'
+                        }`}>
                         {order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1).replace('_', ' ')}
                       </div>
                     </div>
                   </div>
-              ))}
-            </div>
+                ))}
+              </div>
             )}
           </CardContent>
           <CardFooter className="px-4 sm:px-6 bg-gray-50 rounded-b-lg py-3">
@@ -533,7 +532,7 @@ export default function VendorDashboard() {
                   </div>
                 </Link>
               </Button>
-              
+
               <Button className="h-auto py-4 sm:py-5 justify-start bg-gradient-to-r from-blue-50 to-sky-50 hover:from-blue-100 hover:to-sky-100 border border-blue-200 text-blue-800" variant="outline" asChild>
                 <Link href="/vendor/profile">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
@@ -545,7 +544,7 @@ export default function VendorDashboard() {
                   </div>
                 </Link>
               </Button>
-              
+
               <Button className="h-auto py-4 sm:py-5 justify-start bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border border-purple-200 text-purple-800" variant="outline" asChild>
                 <Link href="/vendor/analytics">
                   <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
@@ -557,7 +556,7 @@ export default function VendorDashboard() {
                   </div>
                 </Link>
               </Button>
-              
+
               <Button className="h-auto py-4 sm:py-5 justify-start bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 border border-amber-200 text-amber-800" variant="outline" asChild>
                 <Link href="/vendor/categories">
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mr-3">

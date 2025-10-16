@@ -10,6 +10,7 @@ import { AlertCircle, Info, ShieldCheck, LogIn } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { setVendorSessionCookies } from "@/lib/firebase/set-session-cookie"
 import LoginDebug from "./debug"
+import Image from "next/image"
 
 export default function VendorLogin() {
   const { login, isLoading, isAuthenticated, vendor } = useVendor()
@@ -45,15 +46,15 @@ export default function VendorLogin() {
 
     try {
       console.log("Logging in with email:", email)
-      
+
       // Check Firebase configuration in production
       if (process.env.NODE_ENV === 'production') {
         console.log("Production environment detected. Checking Firebase config...");
-        const hasFirebaseConfig = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
-                                 !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+        const hasFirebaseConfig = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
+          !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
         console.log("Firebase config available:", hasFirebaseConfig);
       }
-      
+
       const result = await login(email, password)
       loginSuccessful = result.success;
 
@@ -77,7 +78,7 @@ export default function VendorLogin() {
 
             // Set session cookies and redirect
             setVendorSessionCookies(vendorId);
-            
+
             // Use direct window.location for more reliable redirect in production
             if (process.env.NODE_ENV === 'production') {
               window.location.href = "/vendor";
@@ -90,7 +91,7 @@ export default function VendorLogin() {
           } else {
             // Give up after max attempts
             console.error("No vendor ID available after maximum attempts");
-            
+
             // In production, try one last fallback approach
             if (process.env.NODE_ENV === 'production') {
               console.log("Attempting fallback authentication approach...");
@@ -104,7 +105,7 @@ export default function VendorLogin() {
                 return;
               }
             }
-            
+
             setError("Authentication error: Could not retrieve vendor details. Please try again or contact support.");
             setIsSubmitting(false);
           }
@@ -120,8 +121,8 @@ export default function VendorLogin() {
           result.error.message.includes("pending") ||
           result.error.message.includes("blocked")) {
           setError("Your vendor account is not active. Please contact the admin for approval.")
-        } else if (result.error.message.includes("Firebase") || 
-                  result.error.message.includes("configuration")) {
+        } else if (result.error.message.includes("Firebase") ||
+          result.error.message.includes("configuration")) {
           setError("Login service is currently unavailable. Please try again later or contact support.")
         } else {
           setError(result.error.message)
@@ -143,67 +144,73 @@ export default function VendorLogin() {
         <Card className="w-full shadow-xl border-0 bg-white/90 backdrop-blur-sm">
           <CardHeader className="pb-4">
             <div className="mx-auto w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
-              <LogIn className="h-8 w-8 text-white" />
+              <Image
+                src="/icons/vlogo.gif"
+                alt=""
+                width={24}
+                height={24}
+                className=" rounded-full w-full h-full"
+              />
             </div>
-            <CardTitle className="text-2xl text-center font-bold bg-gradient-to-r from-indigo-600 to-purple-700 bg-clip-text text-transparent">Vendor Portal</CardTitle>
+            <CardTitle className="text-2xl text-center font-bold bg-gradient-to-r from-indigo-600 to-purple-700 bg-clip-text text-transparent">Buzzat Partner</CardTitle>
             <CardDescription className="text-center">Login to manage your store and orders</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
+          </CardHeader>
+          <CardContent>
+            {error && (
               <Alert variant="destructive" className="mb-4 border-red-300 bg-red-50">
-              <AlertCircle className="h-4 w-4" />
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="font-medium">{error}</AlertDescription>
-            </Alert>
-          )}
+              </Alert>
+            )}
 
             <Alert className="mb-6 border-indigo-200 bg-indigo-50">
               <ShieldCheck className="h-4 w-4 text-indigo-600" />
               <AlertTitle className="font-semibold text-indigo-800">Admin Approval Required</AlertTitle>
               <AlertDescription className="text-indigo-700">
-              Only vendors that have been approved by an admin can login.
-              If you're having trouble logging in, please contact support.
-            </AlertDescription>
-          </Alert>
+                Only vendors that have been approved by an admin can login.
+                If you're having trouble logging in, please contact support.
+              </AlertDescription>
+            </Alert>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
+              <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium text-gray-700">
                   Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="vendor@example.com"
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="vendor@example.com"
                   className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div className="space-y-2">
+                  required
+                />
+              </div>
+              <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
                   className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <Button
-              type="submit"
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
                 className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 py-6"
-              disabled={isSubmitting || isLoading}
-            >
+                disabled={isSubmitting || isLoading}
+              >
                 {isSubmitting || isLoading ? "Logging in..." : "Login to Dashboard"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
