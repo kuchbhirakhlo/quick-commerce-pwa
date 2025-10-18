@@ -7,11 +7,11 @@ import {
 } from "firebase/auth"
 import { db } from "./config"
 import { doc, getDoc, collection, query, where, getDocs, serverTimestamp, updateDoc } from "firebase/firestore"
-import { VendorCredential } from "./vendor-schema"
+import { VendorCredential, getVendorByPhone } from "./vendor-schema"
 import { setVendorSessionCookies, clearVendorSessionCookies, setCookie } from "./set-session-cookie"
 
-// Sign in with email and password specific for vendors
-export const signInVendor = async (email: string, password: string) => {
+// Sign in with email/mobile and password specific for vendors
+export const signInVendor = async (identifier: string, password: string) => {
   try {
     const auth = getAuth()
     if (!auth) {
@@ -35,7 +35,7 @@ export const signInVendor = async (email: string, password: string) => {
     }
 
     // For development without Firebase, allow a test account
-    if (process.env.NODE_ENV === 'development' && email === 'test@example.com' && password === 'password') {
+    if (process.env.NODE_ENV === 'development' && identifier === 'test@example.com' && password === 'password') {
       console.log('Using test vendor account in development mode')
 
       // Set session cookies for test account
@@ -63,99 +63,170 @@ export const signInVendor = async (email: string, password: string) => {
       }
     }
 
-    // Only attempt Firebase auth if we're not using the test account
-    console.log("Attempting Firebase authentication with email:", email);
-    const userCredential = await signInWithEmailAndPassword(auth, email, password)
-    const userUid = userCredential.user.uid
+    // Determine if identifier is email or phone number
+    const isEmail = identifier.includes('@');
+    const isPhone = /^\d{10}$/.test(identifier.replace(/\D/g, ''));
 
-    console.log("User authenticated with Firebase, checking vendor status: ", userUid)
+    if (isEmail) {
+      // Handle email login
+      console.log("Attempting Firebase authentication with email:", identifier);
+      const userCredential = await signInWithEmailAndPassword(auth, identifier, password)
+      const userUid = userCredential.user.uid
 
-    // Check if Firestore is available
-    if (!db) {
-      console.error("Firestore not initialized, cannot verify vendor status");
+      console.log("User authenticated with Firebase, checking vendor status: ", userUid)
+
+      // Check if Firestore is available
+      if (!db) {
+        console.error("Firestore not initialized, cannot verify vendor status");
+        return {
+          success: false,
+          error: new Error("Database connection error. Please try again later.")
+        };
+      }
+
+      // Check if user has vendor role - first try direct UID
+      let vendorDoc = await getDoc(doc(db, "vendors", userUid))
+      let vendorId = userUid
+
+      // If not found, check for vendor with prefix pattern (created by admin)
+      if (!vendorDoc.exists()) {
+        console.log("Vendor not found by direct UID, checking vendor_ prefix")
+        const vendorPrefixId = `vendor_${userUid}`
+        vendorDoc = await getDoc(doc(db, "vendors", vendorPrefixId))
+        if (vendorDoc.exists()) {
+          vendorId = vendorPrefixId
+        }
+      }
+
+      // If still no vendor doc, check by email as a last resort
+      if (!vendorDoc.exists()) {
+        console.log("Vendor not found by prefixed ID, trying to find by email")
+        const vendorsQuery = query(
+          collection(db, "vendors"),
+          where("email", "==", identifier)
+        )
+
+        const querySnapshot = await getDocs(vendorsQuery)
+        if (!querySnapshot.empty) {
+          vendorDoc = querySnapshot.docs[0]
+          vendorId = vendorDoc.id
+          console.log("Found vendor by email with ID:", vendorId);
+        } else {
+          console.error("No vendor account found for user:", userUid, "with email:", identifier);
+          throw new Error("No vendor account found for this user. Please contact support if you believe this is an error.")
+        }
+      }
+
+      // Check if vendor is active
+      const vendorData = vendorDoc.data() as VendorCredential
+      console.log("Vendor status:", vendorData.status);
+
+      if (vendorData.status === "blocked") {
+        throw new Error("Your vendor account has been blocked. Please contact support.")
+      }
+
+      if (vendorData.status === "pending") {
+        throw new Error("Your vendor account is pending approval. Please wait for admin approval.")
+      }
+
+      // Update last login timestamp
+      try {
+        await updateDoc(doc(db, "vendors", vendorId), {
+          lastLogin: serverTimestamp()
+        })
+        console.log("Updated vendor last login timestamp");
+      } catch (updateError) {
+        // Don't fail login if just the timestamp update fails
+        console.error("Failed to update last login timestamp:", updateError);
+      }
+
+      // Set session cookies for authenticated vendor
+      setVendorSessionCookies(userUid, false);
+      console.log("Set session cookies for vendor:", userUid);
+
       return {
-        success: false,
-        error: new Error("Database connection error. Please try again later.")
-      };
-    }
-
-    // Check if user has vendor role - first try direct UID
-    let vendorDoc = await getDoc(doc(db, "vendors", userUid))
-    let vendorId = userUid
-
-    // If not found, check for vendor with prefix pattern (created by admin)
-    if (!vendorDoc.exists()) {
-      console.log("Vendor not found by direct UID, checking vendor_ prefix")
-      const vendorPrefixId = `vendor_${userUid}`
-      vendorDoc = await getDoc(doc(db, "vendors", vendorPrefixId))
-      if (vendorDoc.exists()) {
-        vendorId = vendorPrefixId
+        success: true,
+        user: userCredential.user,
+        vendorData: {
+          id: vendorId,
+          ...vendorData,
+          uid: userUid, // Ensure Firebase UID is included and not overwritten
+        }
       }
-    }
+    } else if (isPhone) {
+      // Handle mobile number login - find vendor by phone first
+      console.log("Attempting login with mobile number:", identifier);
 
-    // If still no vendor doc, check by email as a last resort
-    if (!vendorDoc.exists()) {
-      console.log("Vendor not found by prefixed ID, trying to find by email")
-      const vendorsQuery = query(
-        collection(db, "vendors"),
-        where("email", "==", email)
-      )
-
-      const querySnapshot = await getDocs(vendorsQuery)
-      if (!querySnapshot.empty) {
-        vendorDoc = querySnapshot.docs[0]
-        vendorId = vendorDoc.id
-        console.log("Found vendor by email with ID:", vendorId);
-      } else {
-        console.error("No vendor account found for user:", userUid, "with email:", email);
-        throw new Error("No vendor account found for this user. Please contact support if you believe this is an error.")
+      // Find vendor by phone number
+      const vendorData = await getVendorByPhone(identifier);
+      if (!vendorData) {
+        throw new Error("No vendor account found with this mobile number. Please contact support if you believe this is an error.")
       }
-    }
 
-    // Check if vendor is active
-    const vendorData = vendorDoc.data() as VendorCredential
-    console.log("Vendor status:", vendorData.status);
+      console.log("Found vendor by phone:", vendorData.id);
 
-    if (vendorData.status === "blocked") {
-      throw new Error("Your vendor account has been blocked. Please contact support.")
-    }
-
-    if (vendorData.status === "pending") {
-      throw new Error("Your vendor account is pending approval. Please wait for admin approval.")
-    }
-
-    // Update last login timestamp
-    try {
-      await updateDoc(doc(db, "vendors", vendorId), {
-        lastLogin: serverTimestamp()
-      })
-      console.log("Updated vendor last login timestamp");
-    } catch (updateError) {
-      // Don't fail login if just the timestamp update fails
-      console.error("Failed to update last login timestamp:", updateError);
-    }
-
-    // Set session cookies for authenticated vendor
-    setVendorSessionCookies(userUid, false);
-    console.log("Set session cookies for vendor:", userUid);
-
-    return {
-      success: true,
-      user: userCredential.user,
-      vendorData: {
-        id: vendorId,
-        ...vendorData,
-        uid: userUid, // Ensure Firebase UID is included and not overwritten
+      // Check if vendor is active
+      if (vendorData.status === "blocked") {
+        throw new Error("Your vendor account has been blocked. Please contact support.")
       }
+
+      if (vendorData.status === "pending") {
+        throw new Error("Your vendor account is pending approval. Please wait for admin approval.")
+      }
+
+      // For mobile login, we need to authenticate with email since Firebase Auth doesn't support phone as username
+      // We'll use the email associated with the phone number
+      if (!vendorData.email) {
+        throw new Error("No email associated with this mobile number. Please contact support.")
+      }
+
+      console.log("Authenticating with associated email:", vendorData.email);
+      const userCredential = await signInWithEmailAndPassword(auth, vendorData.email, password)
+      const userUid = userCredential.user.uid
+
+      // Update last login timestamp
+      try {
+        if (!vendorData.id) {
+          throw new Error("Vendor ID is missing. Cannot update login timestamp.");
+        }
+
+        await updateDoc(doc(db, "vendors", vendorData.id), {
+          lastLogin: serverTimestamp()
+        })
+        console.log("Updated vendor last login timestamp");
+      } catch (updateError) {
+        console.error("Failed to update last login timestamp:", updateError);
+      }
+
+      // Set session cookies for authenticated vendor
+      setVendorSessionCookies(userUid, false);
+      console.log("Set session cookies for vendor:", userUid);
+
+      // Ensure we have a valid vendor ID for the response
+      const vendorId = vendorData.id || (() => {
+        throw new Error("Vendor ID is missing from vendor data");
+      })();
+
+      return {
+        success: true,
+        user: userCredential.user,
+        vendorData: {
+          id: vendorId,
+          ...vendorData,
+          uid: userUid,
+        }
+      }
+    } else {
+      throw new Error("Please enter a valid email address or 10-digit mobile number")
     }
   } catch (error: any) {
     console.error("Vendor sign-in error:", error)
 
     // Provide user-friendly error messages
-    let errorMessage = "Failed to sign in. Please check your email and password."
+    let errorMessage = "Failed to sign in. Please check your credentials."
 
     if (error.code === 'auth/invalid-credential') {
-      errorMessage = "Invalid email or password"
+      errorMessage = "Invalid email/mobile or password"
     } else if (error.code === 'auth/user-disabled') {
       errorMessage = "This account has been disabled"
     } else if (error.code === 'auth/user-not-found') {

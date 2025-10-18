@@ -1,6 +1,6 @@
 // Vendor-specific service worker for Quick Commerce Vendor PWA
 
-const CACHE_NAME = 'quick-commerce-vendor-v1';
+const CACHE_NAME = 'quick-commerce-vendor-v2';
 
 // Vendor-specific URLs to cache
 const urlsToCache = [
@@ -16,6 +16,12 @@ const urlsToCache = [
     '/icons/vendor-icon-512x512.png',
     '/sounds/new-order.wav'
 ];
+
+// Background sync for checking new orders
+const BACKGROUND_SYNC_TAG = 'vendor-order-check';
+
+// API endpoint for checking new orders (this should be implemented)
+const ORDERS_API_ENDPOINT = '/api/vendor/orders/check-new';
 
 // Install event - cache the essential vendor files
 self.addEventListener('install', event => {
@@ -103,8 +109,8 @@ self.addEventListener('push', event => {
 
     const options = {
         body: data.body || 'New order received',
-        icon: data.icon || '/icons/vendor-icon-192x192.png',
-        badge: '/icons/vendor-icon-192x192.png',
+        icon: data.icon || '/icons/vendor-icon-192x192.gif',
+        badge: '/icons/vendor-icon-192x192.gif',
         tag: 'vendor-order',
         requireInteraction: true,
         vibrate: [200, 100, 200, 100, 200], // Strong vibration pattern
@@ -119,12 +125,150 @@ self.addEventListener('push', event => {
     );
 });
 
+// Background sync for checking new orders
+self.addEventListener('sync', event => {
+    console.log('Vendor SW: Background sync triggered:', event.tag);
+
+    if (event.tag === BACKGROUND_SYNC_TAG) {
+        event.waitUntil(checkForNewOrders());
+    }
+});
+
+// Periodic background sync (if supported)
+self.addEventListener('periodicsync', event => {
+    console.log('Vendor SW: Periodic sync triggered:', event.tag);
+
+    if (event.tag === BACKGROUND_SYNC_TAG) {
+        event.waitUntil(checkForNewOrders());
+    }
+});
+
+// Function to check for new orders
+async function checkForNewOrders() {
+    try {
+        console.log('Vendor SW: Checking for new orders...');
+
+        // Get all vendor clients
+        const clients = await self.clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true
+        });
+
+        if (clients.length === 0) {
+            console.log('Vendor SW: No active vendor clients found');
+            return;
+        }
+
+        // Find authenticated vendor clients
+        const vendorClients = clients.filter(client =>
+            client.url.includes('/vendor') &&
+            !client.url.includes('/vendor/login')
+        );
+
+        if (vendorClients.length === 0) {
+            console.log('Vendor SW: No authenticated vendor clients found');
+            return;
+        }
+
+        // Get the first vendor client to extract vendor info
+        const vendorClient = vendorClients[0];
+
+        // In a real implementation, you would need to pass vendor authentication
+        // For now, we'll use a simple approach
+        const response = await fetch(ORDERS_API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                timestamp: Date.now(),
+                source: 'background-sync'
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Vendor SW: Order check response:', data);
+
+            if (data.hasNewOrders && data.orders && data.orders.length > 0) {
+                console.log('Vendor SW: New orders found:', data.orders.length);
+
+                // Show notification for new orders
+                await showNewOrdersNotification(data.orders);
+            }
+        } else {
+            console.error('Vendor SW: Failed to check for new orders:', response.status);
+        }
+    } catch (error) {
+        console.error('Vendor SW: Error checking for new orders:', error);
+    }
+}
+
+// Function to show new orders notification
+async function showNewOrdersNotification(orders) {
+    try {
+        const newOrdersCount = orders.length;
+        const firstOrder = orders[0];
+
+        const options = {
+            body: `You have ${newOrdersCount} new order${newOrdersCount > 1 ? 's' : ''} waiting for confirmation`,
+            icon: '/icons/vendor-icon-192x192.gif',
+            badge: '/icons/vendor-icon-192x192.gif',
+            tag: 'vendor-new-orders',
+            requireInteraction: true,
+            vibrate: [200, 100, 200, 100, 200],
+            data: {
+                url: '/vendor/orders',
+                orderCount: newOrdersCount,
+                orders: orders
+            },
+            actions: [
+                {
+                    action: 'view',
+                    title: 'View Orders',
+                    icon: '/icons/vendor-icon-192x192.gif'
+                },
+                {
+                    action: 'dismiss',
+                    title: 'Dismiss'
+                }
+            ]
+        };
+
+        await self.registration.showNotification(
+            `New Order${newOrdersCount > 1 ? 's' : ''}!`,
+            options
+        );
+
+        // Play notification sound if supported
+        try {
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => {
+                client.postMessage({
+                    type: 'PLAY_NOTIFICATION_SOUND',
+                    sound: 'new-order'
+                });
+            });
+        } catch (soundError) {
+            console.error('Vendor SW: Error playing notification sound:', soundError);
+        }
+    } catch (error) {
+        console.error('Vendor SW: Error showing new orders notification:', error);
+    }
+}
+
 // Notification click event - ensure it opens within vendor scope
 self.addEventListener('notificationclick', event => {
     console.log('Vendor SW: Notification clicked');
     event.notification.close();
 
     const notificationUrl = event.notification.data.url || '/vendor/orders';
+    const action = event.action;
+
+    // Handle notification actions
+    if (action === 'dismiss') {
+        return;
+    }
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })

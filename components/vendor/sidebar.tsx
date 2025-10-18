@@ -8,6 +8,7 @@ import { useVendor } from "@/lib/context/vendor-provider"
 import { Button } from "../ui/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import PWAInstallButton from "@/components/pwa-install-button"
 
 interface SidebarNavItemProps {
   href: string
@@ -27,8 +28,8 @@ function SidebarNavItem({ href, icon, label, onClick, color = "text-indigo-600" 
       onClick={onClick}
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
-        isActive 
-          ? "bg-gradient-to-r from-indigo-100 to-blue-100 text-indigo-900 font-medium border-l-4 border-indigo-600" 
+        isActive
+          ? "bg-gradient-to-r from-indigo-100 to-blue-100 text-indigo-900 font-medium border-l-4 border-indigo-600"
           : "text-gray-600 hover:bg-blue-50"
       )}
     >
@@ -126,6 +127,21 @@ export function Sidebar({ onNavItemClick }: SidebarProps) {
           />
         </div>
       </div>
+
+      {/* PWA Install Section */}
+      <div className="px-3 py-2">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+          <p className="text-sm font-medium text-blue-900 mb-2">Install App</p>
+          <p className="text-xs text-blue-700 mb-3">Get live order notifications</p>
+          <PWAInstallButton
+            variant="outline"
+            size="sm"
+            className="w-full bg-white border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+            label="Install App"
+          />
+        </div>
+      </div>
+
       <div className="px-3 py-2 mt-auto">
         <Button
           variant="outline"

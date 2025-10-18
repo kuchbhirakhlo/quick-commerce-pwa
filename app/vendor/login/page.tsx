@@ -14,7 +14,7 @@ import Image from "next/image"
 
 export default function VendorLogin() {
   const { login, isLoading, isAuthenticated, vendor } = useVendor()
-  const [email, setEmail] = useState("")
+  const [mobile, setMobile] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -45,7 +45,14 @@ export default function VendorLogin() {
     let loginSuccessful = false;
 
     try {
-      console.log("Logging in with email:", email)
+      // Use mobile number for login
+      if (!mobile) {
+        setError("Please enter your mobile number")
+        setIsSubmitting(false)
+        return;
+      }
+
+      console.log("Logging in with mobile:", mobile)
 
       // Check Firebase configuration in production
       if (process.env.NODE_ENV === 'production') {
@@ -55,7 +62,7 @@ export default function VendorLogin() {
         console.log("Firebase config available:", hasFirebaseConfig);
       }
 
-      const result = await login(email, password)
+      const result = await login(mobile, password)
       loginSuccessful = result.success;
 
       if (result.success) {
@@ -150,6 +157,7 @@ export default function VendorLogin() {
                 width={24}
                 height={24}
                 className=" rounded-full w-full h-full"
+                unoptimized
               />
             </div>
             <CardTitle className="text-2xl text-center font-bold bg-gradient-to-r from-indigo-600 to-purple-700 bg-clip-text text-transparent">Buzzat Partner</CardTitle>
@@ -174,15 +182,17 @@ export default function VendorLogin() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  Email Address
+                <label htmlFor="mobile" className="text-sm font-medium text-gray-700">
+                  Mobile Number
                 </label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="vendor@example.com"
+                  id="mobile"
+                  type="tel"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                  placeholder="9876543210"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
                   className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
                   required
                 />

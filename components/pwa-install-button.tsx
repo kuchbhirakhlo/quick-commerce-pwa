@@ -33,15 +33,40 @@ export default function PWAInstallButton({
   const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
+    // Ensure vendor manifest is linked
+    const ensureVendorManifest = () => {
+      const existingLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement
+      if (existingLink && !existingLink.href.includes('vendor-manifest.json')) {
+        existingLink.href = '/vendor-manifest.json'
+      } else if (!existingLink) {
+        const link = document.createElement('link')
+        link.rel = 'manifest'
+        link.href = '/vendor-manifest.json'
+        document.head.appendChild(link)
+      }
+    }
+
+    ensureVendorManifest()
+
     // Check if the app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true) {
+    const checkInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      const isIOSStandalone = (window.navigator as any).standalone === true
+      const isVendorPWA = window.location.search.includes('source=pwa') ||
+        window.location.search.includes('utm_source=homescreen') ||
+        document.referrer.includes('homescreen')
+
+      return isStandalone || isIOSStandalone || isVendorPWA
+    }
+
+    if (checkInstalled()) {
       setIsInstalled(true)
       return
     }
 
     // Store the install prompt for later use
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('Vendor PWA: beforeinstallprompt event received')
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setIsInstallable(true)
@@ -52,37 +77,61 @@ export default function PWAInstallButton({
 
     // Listen for app installed event
     window.addEventListener('appinstalled', () => {
+      console.log('Vendor PWA was installed')
       setIsInstalled(true)
       setDeferredPrompt(null)
-      console.log('PWA was installed')
     })
+
+    // Check again after a short delay to catch any missed events
+    const checkAgain = setTimeout(() => {
+      if (checkInstalled()) {
+        setIsInstalled(true)
+      }
+    }, 1000)
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      clearTimeout(checkAgain)
     }
   }, [])
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return
-
-    // Show the install prompt
-    deferredPrompt.prompt()
-
-    // Wait for the user to respond to the prompt
-    const choiceResult = await deferredPrompt.userChoice
-
-    if (choiceResult.outcome === 'accepted') {
-      console.log('User accepted the install prompt')
-    } else {
-      console.log('User dismissed the install prompt')
+    if (!deferredPrompt) {
+      console.error('Vendor PWA: No deferred prompt available')
+      return
     }
 
-    // Clear the deferredPrompt as it can only be used once
-    setDeferredPrompt(null)
+    try {
+      console.log('Vendor PWA: Showing install prompt')
+
+      // Show the install prompt
+      deferredPrompt.prompt()
+
+      // Wait for the user to respond to the prompt
+      const choiceResult = await deferredPrompt.userChoice
+      console.log('Vendor PWA: User choice result:', choiceResult)
+
+      if (choiceResult.outcome === 'accepted') {
+        console.log('Vendor PWA: User accepted the install prompt')
+      } else {
+        console.log('Vendor PWA: User dismissed the install prompt')
+      }
+
+      // Clear the deferredPrompt as it can only be used once
+      setDeferredPrompt(null)
+      setIsInstallable(false)
+    } catch (error) {
+      console.error('Vendor PWA: Error showing install prompt:', error)
+    }
   }
 
   // Don't show the button if the app is already installed or not installable
-  if (isInstalled || !isInstallable) return null
+  if (isInstalled || !isInstallable) {
+    console.log('Vendor PWA: Button hidden - isInstalled:', isInstalled, 'isInstallable:', isInstallable)
+    return null
+  }
+
+  console.log('Vendor PWA: Install button shown - isInstallable:', isInstallable, 'hasDeferredPrompt:', !!deferredPrompt)
 
   return (
     <Button

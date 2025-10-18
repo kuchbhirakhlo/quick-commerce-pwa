@@ -152,16 +152,37 @@ export const getVendorByEmail = async (email: string) => {
       collection(db, "vendors"),
       where("email", "==", email)
     );
-    
+
     const querySnapshot = await getDocs(vendorsQuery);
     if (!querySnapshot.empty) {
       const vendorDoc = querySnapshot.docs[0];
       return { id: vendorDoc.id, ...vendorDoc.data() } as VendorCredential;
     }
-    
+
     return null;
   } catch (error) {
     console.error("Error getting vendor by email:", error);
+    return null;
+  }
+};
+
+// Get vendor by phone number
+export const getVendorByPhone = async (phone: string) => {
+  try {
+    const vendorsQuery = query(
+      collection(db, "vendors"),
+      where("phone", "==", phone)
+    );
+
+    const querySnapshot = await getDocs(vendorsQuery);
+    if (!querySnapshot.empty) {
+      const vendorDoc = querySnapshot.docs[0];
+      return { id: vendorDoc.id, ...vendorDoc.data() } as VendorCredential;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error getting vendor by phone:", error);
     return null;
   }
 };
