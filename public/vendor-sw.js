@@ -20,6 +20,9 @@ const urlsToCache = [
 // Background sync for checking new orders
 const BACKGROUND_SYNC_TAG = 'vendor-order-check';
 
+// Minimum interval for periodic background sync (in milliseconds)
+const MIN_PERIODIC_SYNC_INTERVAL = 15 * 60 * 1000; // 15 minutes minimum
+
 // API endpoint for checking new orders (this should be implemented)
 const ORDERS_API_ENDPOINT = '/api/vendor/orders/check-new';
 

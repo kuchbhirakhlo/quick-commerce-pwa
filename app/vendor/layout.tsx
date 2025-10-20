@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import PWAInstallButton from "@/components/pwa-install-button"
 import { VendorProvider, useVendor } from "@/lib/context/vendor-provider"
 import { Sidebar } from "@/components/vendor/sidebar"
+import { OrderNotificationPopup } from "@/components/vendor/order-notification-popup"
 import Spinner from "@/components/ui/spinner"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Toaster } from "@/components/ui/toaster"
@@ -81,6 +82,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { vendor } = useVendor()
   const [newOrdersCount, setNewOrdersCount] = useState(0)
+
 
   // Check if it's the login page
   const isLoginPage = pathname === "/vendor/login"
@@ -347,6 +349,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
       </VendorAuthRedirect>
       <Toaster />
 
+
       {/* Enhanced notification sound preload and service initialization */}
       <Script id="notification-preload" strategy="afterInteractive">
         {`
@@ -459,7 +462,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                   if ('periodicSync' in registration) {
                     try {
                       await (registration as any).periodicSync.register('vendor-order-check', {
-                        minInterval: 60000 // Check every minute for demo (minimum is usually 1 hour in production)
+                        minInterval: 15 * 60 * 1000 // Check every 15 minutes (minimum supported interval)
                       });
                       console.log('Vendor periodic background sync registered successfully');
                     } catch (periodicError) {

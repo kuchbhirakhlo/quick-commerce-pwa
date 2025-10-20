@@ -91,7 +91,7 @@
   ],
   "lang": "en",
   "dir": "ltr",
-  "prefer_related_applications": false,
+  "prefer_related_applications": true,
   "related_applications": [],
   "screenshots": [],
   "iarc_rating_id": "",
@@ -113,5 +113,15 @@
   "handle_links": "preferred",
   "launch_handler": {
     "client_mode": "focus-existing"
-  }
+  },
+  "background_sync": {
+    "min_interval": 3600000
+  },
+  "permissions": [
+    "notifications",
+    "background-sync",
+    "periodic-background-sync"
+  ],
+  "gcm_sender_id": "103953800507",
+  "gcm_user_visible_only": true
 }

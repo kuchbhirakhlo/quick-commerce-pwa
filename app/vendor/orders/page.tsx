@@ -27,6 +27,7 @@ import { Bell } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import OrderNotification from "@/components/vendor/order-notification"
 import { vendorNotificationService } from "@/lib/firebase/notification-service"
+import { useVendorNotifications } from "@/hooks/use-vendor-notifications"
 
 const ORDER_STATUS_COLORS = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -86,6 +87,9 @@ export default function VendorOrders() {
   const { toast } = useToast()
   const [newOrdersCount, setNewOrdersCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
+
+  // Initialize vendor notifications (no popup on orders page, but sounds still work)
+  useVendorNotifications({ showPopup: false })
 
   useEffect(() => {
     if (!vendor || !vendor.pincodes || vendor.pincodes.length === 0) return

@@ -12,6 +12,8 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import { notificationService, vendorNotificationService } from "@/lib/firebase/notification-service"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { OrderNotificationPopup } from "@/components/vendor/order-notification-popup"
+import { useVendorNotifications } from "@/hooks/use-vendor-notifications"
 
 // Dynamically import the PWA install button with no SSR
 const PWAInstallButton = dynamic(() => import("@/components/pwa-install-button"), {
@@ -53,6 +55,15 @@ export default function VendorDashboard() {
   })
   const [showNotificationDemo, setShowNotificationDemo] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Initialize vendor notifications for popup (only show popup on dashboard)
+  const {
+    currentOrder,
+    isPopupVisible,
+    hideNotificationPopup,
+    acceptOrder,
+    rejectOrder
+  } = useVendorNotifications({ showPopup: true })
 
   // Check authentication status
   useEffect(() => {
@@ -599,6 +610,15 @@ export default function VendorDashboard() {
           </div>
         </AlertDescription>
       </Alert>
+
+      {/* Order notification popup - only shown on dashboard */}
+      <OrderNotificationPopup
+        order={currentOrder}
+        isVisible={isPopupVisible}
+        onClose={hideNotificationPopup}
+        onAccept={acceptOrder}
+        onReject={rejectOrder}
+      />
     </div>
   )
-} 
+}

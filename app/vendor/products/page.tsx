@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { AlertCircle, Loader2, Trash2, Edit, ShoppingBag, Package } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "@/components/ui/use-toast"
+import { useVendorNotifications } from "@/hooks/use-vendor-notifications"
 import {
   Dialog,
   DialogContent,
@@ -66,24 +67,27 @@ export default function VendorProductsPage() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Initialize vendor notifications (no popup on products page, but sounds still work)
+  useVendorNotifications({ showPopup: false })
+
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const categoriesQuery = query(collection(db, "categories"))
         const snapshot = await getDocs(categoriesQuery)
-        
+
         const categoriesData: Record<string, Category> = {}
         snapshot.docs.forEach(doc => {
           categoriesData[doc.id] = { id: doc.id, ...doc.data() } as Category
         })
-        
+
         setCategories(categoriesData)
       } catch (error) {
         console.error("Error fetching categories:", error)
       }
     }
-    
+
     fetchCategories()
   }, [])
 

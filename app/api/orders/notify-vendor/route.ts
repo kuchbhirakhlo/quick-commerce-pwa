@@ -1,127 +1,199 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { getAdminMessaging } from '@/lib/firebase/admin';
+"use server"
 
-interface OrderNotificationRequest {
-    orderId: string;
-    vendorId: string;
-    orderNumber: string;
-    customerName: string;
-    totalAmount: number;
-}
+import { NextRequest, NextResponse } from "next/server"
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase/config"
+import { getAdminMessaging } from "@/lib/firebase/admin"
 
 export async function POST(request: NextRequest) {
     try {
-        const body: OrderNotificationRequest = await request.json();
-        const { orderId, vendorId, orderNumber, customerName, totalAmount } = body;
+        const body = await request.json()
+        const { orderId, vendorId } = body
 
-        // Validate required fields
-        if (!orderId || !vendorId || !orderNumber) {
-            return NextResponse.json(
-                { error: 'Missing required fields: orderId, vendorId, orderNumber' },
-                { status: 400 }
-            );
+        console.log("Order notification request:", { orderId, vendorId })
+
+        if (!orderId || !vendorId) {
+            return NextResponse.json({
+                success: false,
+                error: "Order ID and Vendor ID are required"
+            }, { status: 400 })
         }
 
-        // Initialize Firebase Admin messaging
-        const messaging = await getAdminMessaging();
-        if (!messaging) {
-            return NextResponse.json(
-                { error: 'Failed to initialize Firebase Admin messaging' },
-                { status: 500 }
-            );
+        // Get order details
+        const orderDoc = await getDoc(doc(db, "orders", orderId))
+        if (!orderDoc.exists()) {
+            return NextResponse.json({
+                success: false,
+                error: "Order not found"
+            }, { status: 404 })
         }
 
-        // Get vendor's FCM tokens
-        const tokensRef = collection(db!, 'vendor_tokens');
-        const q = query(tokensRef, where('vendorId', '==', vendorId));
-        const querySnapshot = await getDocs(q);
+        const orderData = orderDoc.data()
 
-        if (querySnapshot.empty) {
-            console.log(`No FCM tokens found for vendor ${vendorId}`);
-            return NextResponse.json(
-                { message: 'No registered devices for vendor' },
-                { status: 200 }
-            );
-        }
+        // Get vendor FCM token
+        const vendorTokenDoc = await getDoc(doc(db, "vendor_tokens", `${vendorId}_web`))
+        let fcmToken = null
 
-        const tokens: string[] = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.fcmToken) {
-                tokens.push(data.fcmToken);
+        if (vendorTokenDoc.exists()) {
+            const tokenData = vendorTokenDoc.data()
+            if (tokenData.active && tokenData.token) {
+                fcmToken = tokenData.token
             }
-        });
+        }
 
-        if (tokens.length === 0) {
-            console.log(`No valid FCM tokens found for vendor ${vendorId}`);
-            return NextResponse.json(
-                { message: 'No valid FCM tokens for vendor' },
-                { status: 200 }
-            );
+        // If no FCM token found, try mobile token
+        if (!fcmToken) {
+            const mobileTokenDoc = await getDoc(doc(db, "vendor_tokens", `${vendorId}_mobile`))
+            if (mobileTokenDoc.exists()) {
+                const tokenData = mobileTokenDoc.data()
+                if (tokenData.active && tokenData.token) {
+                    fcmToken = tokenData.token
+                }
+            }
+        }
+
+        if (!fcmToken) {
+            console.log(`No FCM token found for vendor ${vendorId}`)
+            return NextResponse.json({
+                success: false,
+                error: "Vendor FCM token not found"
+            }, { status: 404 })
         }
 
         // Prepare notification payload
-        const message = {
+        const orderNumber = orderData.orderNumber || orderId.substring(0, 8).toUpperCase()
+        const customerName = orderData.customerName || "Unknown Customer"
+        const totalAmount = orderData.totalAmount || 0
+        const itemCount = orderData.items ? orderData.items.length : 0
+
+        const notificationPayload = {
+            token: fcmToken,
             notification: {
-                title: 'New Order Received! 🎉',
-                body: `Order #${orderNumber} from ${customerName} - ₹${totalAmount.toFixed(2)}`,
-                icon: '/icons/vendor-icon-192x192.png',
-                badge: '/icons/vendor-icon-72x72.png',
-                tag: `new-order-${orderId}`,
+                title: "New Order Received! 🎉",
+                body: `${customerName} placed order #${orderNumber} (${itemCount} items, ₹${totalAmount})`,
+                icon: "/icons/vendor-icon-192x192.gif",
+                badge: "/icons/vendor-icon-192x192.gif",
+                tag: "vendor-order",
+                requireInteraction: true,
+                sound: "default"
             },
             data: {
-                orderId,
-                orderNumber,
-                vendorId,
-                type: 'new_order',
+                orderId: orderId,
+                vendorId: vendorId,
+                orderNumber: orderNumber,
+                customerName: customerName,
+                totalAmount: totalAmount.toString(),
+                itemCount: itemCount.toString(),
                 url: `/vendor/orders/${orderId}`,
+                type: "new_order",
+                timestamp: new Date().toISOString(),
                 click_action: `/vendor/orders/${orderId}`
             },
             webpush: {
-                fcmOptions: {
-                    link: `/vendor/orders/${orderId}`
+                headers: {
+                    "TTL": "3600" // 1 hour
+                },
+                notification: {
+                    title: "New Order Received! 🎉",
+                    body: `${customerName} placed order #${orderNumber} (${itemCount} items, ₹${totalAmount})`,
+                    icon: "/icons/vendor-icon-192x192.gif",
+                    badge: "/icons/vendor-icon-192x192.gif",
+                    tag: "vendor-order",
+                    requireInteraction: true,
+                    actions: [
+                        {
+                            action: "view",
+                            title: "View Order",
+                            icon: "/icons/vendor-icon-192x192.gif"
+                        },
+                        {
+                            action: "dismiss",
+                            title: "Dismiss"
+                        }
+                    ]
+                },
+                data: {
+                    url: `/vendor/orders/${orderId}`,
+                    orderId: orderId
                 }
             },
-            tokens: tokens
-        };
-
-        const response = await messaging.sendEachForMulticast(message);
-
-        console.log(`Notification sent to vendor ${vendorId}:`, {
-            successCount: response.successCount,
-            failureCount: response.failureCount,
-            responses: response.responses
-        });
-
-        // Handle failed tokens (remove invalid ones)
-        if (response.failureCount > 0) {
-            const failedTokens: string[] = [];
-            response.responses.forEach((resp: any, idx: number) => {
-                if (!resp.success) {
-                    failedTokens.push(tokens[idx]);
+            android: {
+                notification: {
+                    title: "New Order Received! 🎉",
+                    body: `${customerName} placed order #${orderNumber}`,
+                    icon: "vendor_icon",
+                    color: "#f59e0b",
+                    sound: "default",
+                    tag: "vendor-order",
+                    priority: "high" as const,
+                    default_sound: true,
+                    default_vibrate_timings: true
                 }
-            });
-
-            if (failedTokens.length > 0) {
-                console.log('Removing invalid tokens:', failedTokens);
-                // TODO: Remove invalid tokens from database
+            },
+            apns: {
+                headers: {
+                    "apns-priority": "10",
+                    "apns-expiration": "1604750400"
+                },
+                payload: {
+                    aps: {
+                        alert: {
+                            title: "New Order Received! 🎉",
+                            body: `${customerName} placed order #${orderNumber} (${itemCount} items, ₹${totalAmount})`
+                        },
+                        badge: 1,
+                        sound: "default",
+                        category: "NEW_ORDER",
+                        "mutable-content": 1
+                    }
+                }
             }
         }
 
-        return NextResponse.json({
-            success: true,
-            message: `Notification sent to ${response.successCount} devices`,
-            successCount: response.successCount,
-            failureCount: response.failureCount
-        });
+        // Send notification via Firebase Admin SDK
+        try {
+            const messaging = await getAdminMessaging()
+            if (!messaging) {
+                return NextResponse.json({
+                    success: false,
+                    error: "Firebase messaging not available"
+                }, { status: 500 })
+            }
+
+            const response = await messaging.send(notificationPayload)
+            console.log("Notification sent successfully:", response)
+
+            // Update order with notification sent timestamp
+            const { updateDoc } = await import("firebase/firestore")
+            await updateDoc(orderDoc.ref, {
+                notificationSentAt: new Date(),
+                notificationMessageId: response
+            })
+
+            return NextResponse.json({
+                success: true,
+                message: "Notification sent successfully",
+                messageId: response,
+                orderId,
+                vendorId,
+                sentAt: new Date().toISOString()
+            })
+
+        } catch (firebaseError) {
+            console.error("Firebase notification error:", firebaseError)
+            return NextResponse.json({
+                success: false,
+                error: "Failed to send notification",
+                details: firebaseError instanceof Error ? firebaseError.message : "Unknown Firebase error"
+            }, { status: 500 })
+        }
 
     } catch (error) {
-        console.error('Error sending vendor notification:', error);
-        return NextResponse.json(
-            { error: 'Failed to send notification' },
-            { status: 500 }
-        );
+        console.error("Error sending vendor notification:", error)
+        return NextResponse.json({
+            success: false,
+            error: "Internal server error",
+            message: error instanceof Error ? error.message : "Unknown error"
+        }, { status: 500 })
     }
 }
