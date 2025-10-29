@@ -116,11 +116,25 @@ self.addEventListener('push', event => {
         badge: '/icons/vendor-icon-192x192.gif',
         tag: 'vendor-order',
         requireInteraction: true,
-        vibrate: [200, 100, 200, 100, 200], // Strong vibration pattern
+        vibrate: [200, 100, 200, 100, 200, 100, 200], // Enhanced vibration pattern for lock screen
+        silent: false, // Ensure sound plays even on lock screen
         data: {
             url: data.url || '/vendor/orders', // Default to vendor orders
             orderId: data.orderId || null
-        }
+        },
+        // Enhanced notification settings for lock screen visibility
+        actions: [
+            {
+                action: 'view',
+                title: 'View Order',
+                icon: '/icons/vendor-icon-192x192.gif'
+            },
+            {
+                action: 'accept',
+                title: 'Accept Order',
+                icon: '/icons/vendor-icon-192x192.gif'
+            }
+        ]
     };
 
     event.waitUntil(
@@ -262,7 +276,7 @@ async function showNewOrdersNotification(orders) {
 
 // Notification click event - ensure it opens within vendor scope
 self.addEventListener('notificationclick', event => {
-    console.log('Vendor SW: Notification clicked');
+    console.log('Vendor SW: Notification clicked, action:', event.action);
     event.notification.close();
 
     const notificationUrl = event.notification.data.url || '/vendor/orders';
@@ -270,7 +284,14 @@ self.addEventListener('notificationclick', event => {
 
     // Handle notification actions
     if (action === 'dismiss') {
+        console.log('Vendor SW: Notification dismissed');
         return;
+    }
+
+    if (action === 'accept') {
+        console.log('Vendor SW: Order accept action clicked');
+        // Handle order acceptance - could trigger API call
+        // For now, just open the orders page
     }
 
     event.waitUntil(

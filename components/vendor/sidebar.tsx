@@ -70,6 +70,13 @@ export function Sidebar({ onNavItemClick }: SidebarProps) {
       <div className="px-3 py-2">
         <div className="space-y-1">
           <SidebarNavItem
+            href="/vendor/orders"
+            icon={<ShoppingBag className="h-4 w-4" />}
+            label="Orders"
+            onClick={onNavItemClick}
+            color="text-purple-600"
+          />
+          <SidebarNavItem
             href="/vendor"
             icon={<Home className="h-4 w-4" />}
             label="Dashboard"
@@ -89,13 +96,6 @@ export function Sidebar({ onNavItemClick }: SidebarProps) {
             label="Categories"
             onClick={onNavItemClick}
             color="text-amber-600"
-          />
-          <SidebarNavItem
-            href="/vendor/orders"
-            icon={<ShoppingBag className="h-4 w-4" />}
-            label="Orders"
-            onClick={onNavItemClick}
-            color="text-purple-600"
           />
           <SidebarNavItem
             href="/vendor/profile"

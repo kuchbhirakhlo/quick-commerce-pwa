@@ -73,11 +73,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
 
           <nav className="space-y-1">
+            <NavItem href="/admin/orders" icon={<ShoppingBag size={18} />} label="Orders" />
             <NavItem href="/admin" icon={<Home size={18} />} label="Dashboard" />
             <NavItem href="/admin/vendors" icon={<Users size={18} />} label="Vendors" />
             <NavItem href="/admin/categories" icon={<Layers size={18} />} label="Categories" />
             <NavItem href="/admin/products" icon={<Package size={18} />} label="Products" />
-            <NavItem href="/admin/orders" icon={<ShoppingBag size={18} />} label="Orders" />
             <NavItem href="/admin/banner-cards" icon={<Image size={18} />} label="Banner Cards" />
             <NavItem href="/admin/analytics" icon={<BarChart3 size={18} />} label="Analytics" />
             <NavItem href="/admin/settings" icon={<Settings size={18} />} label="Settings" />

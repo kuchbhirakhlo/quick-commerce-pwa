@@ -41,10 +41,15 @@ function VendorAuthRedirect({ children }: { children: React.ReactNode }) {
         console.log(`Redirecting to auth check page. Vendor status: ${vendor.status}`)
         router.push("/vendor/auth-check")
       }
-      // If on login page but already authenticated, redirect to dashboard
+      // If on login page but already authenticated, redirect to orders
       else if (isAuthenticated && pathname === "/vendor/login") {
-        console.log("Already authenticated, redirecting to dashboard")
-        router.push("/vendor")
+        console.log("Already authenticated, redirecting to orders")
+        router.push("/vendor/orders")
+      }
+      // If on dashboard page and authenticated, redirect to orders
+      else if (isAuthenticated && pathname === "/vendor") {
+        console.log("On dashboard page, redirecting to orders")
+        router.push("/vendor/orders")
       }
     }
   }, [isAuthenticated, isLoading, isClient, pathname, router, vendor])
@@ -227,8 +232,8 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                       if (response.ok) {
                         const data = await response.json();
                         if (data.authenticated && currentPath === '/vendor/login') {
-                          console.log('PWA: Vendor authenticated, redirecting to dashboard');
-                          window.location.href = '/vendor';
+                          console.log('PWA: Vendor authenticated, redirecting to orders');
+                          window.location.href = '/vendor/orders';
                         }
                       } else {
                         // Authentication invalid, redirect to login
@@ -399,6 +404,20 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                       console.log('Audio context not available');
                     }
 
+                    // Request wake lock for lock screen notifications (if supported)
+                    if ('wakeLock' in navigator) {
+                      try {
+                        navigator.wakeLock.request('screen').then(wakeLock => {
+                          console.log('Vendor wake lock acquired for lock screen notifications');
+                          window.vendorWakeLock = wakeLock;
+                        }).catch(e => {
+                          console.log('Vendor wake lock not available:', e);
+                        });
+                      } catch (e) {
+                        console.log('Wake lock API not supported');
+                      }
+                    }
+
                     window.vendorNotificationPermission = 'granted';
                     return 'granted';
                   } else {
@@ -408,6 +427,21 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                 });
               } else if ('Notification' in window && Notification.permission === 'granted') {
                 console.log('Vendor notification permission already granted');
+
+                // Request wake lock for lock screen notifications (if supported)
+                if ('wakeLock' in navigator) {
+                  try {
+                    navigator.wakeLock.request('screen').then(wakeLock => {
+                      console.log('Vendor wake lock acquired for lock screen notifications');
+                      window.vendorWakeLock = wakeLock;
+                    }).catch(e => {
+                      console.log('Vendor wake lock not available:', e);
+                    });
+                  } catch (e) {
+                    console.log('Wake lock API not supported');
+                  }
+                }
+
                 window.vendorNotificationPermission = 'granted';
                 return Promise.resolve('granted');
               } else {
@@ -447,6 +481,54 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
             document.addEventListener('click', unlockAudio);
             document.addEventListener('touchstart', unlockAudio);
             document.addEventListener('keydown', unlockAudio);
+
+            // Request screen wake lock for lock screen notifications
+            const requestWakeLock = async function() {
+              try {
+                if ('wakeLock' in navigator) {
+                  const wakeLock = await navigator.wakeLock.request('screen');
+                  console.log('Screen wake lock acquired for lock screen notifications');
+
+                  // Handle wake lock release
+                  wakeLock.addEventListener('release', () => {
+                    console.log('Screen wake lock released');
+                  });
+
+                  // Store wake lock globally
+                  window.vendorWakeLock = wakeLock;
+
+                  // Re-acquire wake lock when page becomes visible
+                  document.addEventListener('visibilitychange', async () => {
+                    if (document.visibilityState === 'visible' && !window.vendorWakeLock) {
+                      try {
+                        window.vendorWakeLock = await navigator.wakeLock.request('screen');
+                        console.log('Screen wake lock re-acquired');
+                      } catch (e) {
+                        console.log('Failed to re-acquire wake lock:', e);
+                      }
+                    }
+                  });
+                } else {
+                  console.log('Screen Wake Lock API not supported');
+                }
+              } catch (e) {
+                console.log('Screen wake lock not available:', e);
+              }
+            };
+
+            // Request wake lock on page load
+            requestWakeLock();
+
+            // Re-request wake lock on user interaction
+            const reRequestWakeLock = function() {
+              if (!window.vendorWakeLock) {
+                requestWakeLock();
+              }
+            };
+
+            document.addEventListener('click', reRequestWakeLock);
+            document.addEventListener('touchstart', reRequestWakeLock);
+            document.addEventListener('keydown', reRequestWakeLock);
 
             // Register background sync for checking new orders
             const registerBackgroundSync = async function() {
@@ -597,12 +679,33 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                         badge: '/icons/vendor-icon-192x192.gif',
                         tag: 'vendor-order',
                         requireInteraction: true,
-                        data: payload.data
+                        silent: false, // Ensure sound plays
+                        vibrate: [200, 100, 200, 100, 200], // Vibration pattern
+                        data: payload.data,
+                        actions: [
+                          {
+                            action: 'view',
+                            title: 'View Order',
+                            icon: '/icons/vendor-icon-192x192.gif'
+                          },
+                          {
+                            action: 'accept',
+                            title: 'Accept Order',
+                            icon: '/icons/vendor-icon-192x192.gif'
+                          }
+                        ]
                       });
 
-                      // Play notification sound
+                      // Play notification sound with higher volume
                       if (window.vendorNotificationAudio) {
-                        window.vendorNotificationAudio.play().catch(e => console.log('Audio play failed:', e));
+                        window.vendorNotificationAudio.volume = 1.0;
+                        window.vendorNotificationAudio.play().catch(e => {
+                          console.log('Primary audio failed, trying backup:', e);
+                          if (window.vendorNotificationAudioBackup) {
+                            window.vendorNotificationAudioBackup.volume = 1.0;
+                            window.vendorNotificationAudioBackup.play().catch(e2 => console.log('Backup audio failed:', e2));
+                          }
+                        });
                       }
 
                       // Handle notification click
@@ -610,6 +713,11 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                         window.focus();
                         window.location.href = payload.data?.url || '/vendor/orders';
                         notification.close();
+                      };
+
+                      // Handle notification action clicks
+                      notification.onshow = function() {
+                        console.log('Vendor notification shown on lock screen');
                       };
                     }
                   }
