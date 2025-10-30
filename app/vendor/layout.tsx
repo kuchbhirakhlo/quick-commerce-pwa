@@ -46,11 +46,8 @@ function VendorAuthRedirect({ children }: { children: React.ReactNode }) {
         console.log("Already authenticated, redirecting to orders")
         router.push("/vendor/orders")
       }
-      // If on dashboard page and authenticated, redirect to orders
-      else if (isAuthenticated && pathname === "/vendor") {
-        console.log("On dashboard page, redirecting to orders")
-        router.push("/vendor/orders")
-      }
+      // Allow access to dashboard page for authenticated vendors
+      // No redirect needed - vendors can access both orders and dashboard
     }
   }, [isAuthenticated, isLoading, isClient, pathname, router, vendor])
 

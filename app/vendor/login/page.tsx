@@ -33,7 +33,7 @@ export default function VendorLogin() {
       // Delay redirect slightly to ensure cookies are set
       setTimeout(() => {
         console.log("Redirecting to dashboard");
-        router.push("/vendor");
+        router.push("/vendor/orders");
       }, 100);
     }
   }, [isAuthenticated, vendor, router]);

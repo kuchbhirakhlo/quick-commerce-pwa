@@ -70,11 +70,8 @@ export default function VendorDashboard() {
     if (!isLoading && !isAuthenticated) {
       console.log("Not authenticated, redirecting to login")
       router.push("/vendor/login")
-    } else if (!isLoading && isAuthenticated) {
-      // Redirect to orders page as default
-      console.log("Authenticated, redirecting to orders")
-      router.push("/vendor/orders")
     }
+    // Allow authenticated vendors to stay on dashboard page
   }, [isAuthenticated, isLoading, router])
 
   // Fetch dashboard data
