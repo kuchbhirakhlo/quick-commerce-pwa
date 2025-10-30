@@ -5,7 +5,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore"
 import { db } from "@/lib/firebase/config"
-import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin, ChevronRight, ChevronDown, ChevronUp } from "lucide-react"
+import { FacebookIcon, Instagram, Twitter, ChevronRight, ChevronDown, ChevronUp, Heart } from "lucide-react"
+import { FaWhatsapp } from "react-icons/fa"
 
 interface Category {
   id: string
@@ -93,7 +94,7 @@ export default function Footer(props: React.HTMLAttributes<HTMLElement>) {
           {/* Logo and description - always visible */}
           <div className="mb-6 md:mb-8">
             <Link href="/" className="inline-block mb-4">
-              <Image src="/logo.webp" alt="Logo" width={120} height={48} />
+              <Image src="/icons/dlogo.gif" className="rounded-full" alt="Logo" width={120} height={48} />
             </Link>
             <p className="text-gray-600 md:max-w-md">
               Your one-stop shop for quick grocery delivery. Get fresh products delivered to your doorstep in minutes.
@@ -104,10 +105,10 @@ export default function Footer(props: React.HTMLAttributes<HTMLElement>) {
           <CollapsibleSection title="Quick Links">
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-gray-600 hover:text-emerald-600">About Us</Link>
+                <Link href="/about-us" className="text-gray-600 hover:text-emerald-600">About Us</Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-emerald-600">Contact Us</Link>
+                <Link href="/contact-us" className="text-gray-600 hover:text-emerald-600">Contact Us</Link>
               </li>
               <li>
                 <Link href="/terms" className="text-gray-600 hover:text-emerald-600">Terms & Conditions</Link>
@@ -116,7 +117,10 @@ export default function Footer(props: React.HTMLAttributes<HTMLElement>) {
                 <Link href="/privacy" className="text-gray-600 hover:text-emerald-600">Privacy Policy</Link>
               </li>
               <li>
-                <Link href="/faq" className="text-gray-600 hover:text-emerald-600">FAQs</Link>
+                <Link href="/faqs" className="text-gray-600 hover:text-emerald-600">FAQs</Link>
+              </li>
+              <li>
+                <Link href="/vendor" className="text-gray-600 hover:text-emerald-600">Vendor</Link>
               </li>
             </ul>
           </CollapsibleSection>
@@ -159,17 +163,14 @@ export default function Footer(props: React.HTMLAttributes<HTMLElement>) {
           {/* Social Links */}
           <CollapsibleSection title="Connect With Us">
             <div className="flex space-x-3 mb-4">
-              <a href="#" className="bg-gray-200 p-2 rounded-full hover:bg-emerald-100">
-                <Facebook size={18} className="text-gray-700" />
+              <a href="https://www.facebook.com/profile.php?id=61571924386565" className="bg-gray-200 p-2 rounded-full hover:bg-emerald-100">
+                <FacebookIcon size={18} className="text-gray-700" />
               </a>
-              <a href="#" className="bg-gray-200 p-2 rounded-full hover:bg-emerald-100">
+              <a href="https://www.instagram.com/buzzatstore/" className="bg-gray-200 p-2 rounded-full hover:bg-emerald-100">
                 <Instagram size={18} className="text-gray-700" />
               </a>
-              <a href="#" className="bg-gray-200 p-2 rounded-full hover:bg-emerald-100">
-                <Twitter size={18} className="text-gray-700" />
-              </a>
-              <a href="#" className="bg-gray-200 p-2 rounded-full hover:bg-emerald-100">
-                <Linkedin size={18} className="text-gray-700" />
+              <a href="https://wa.me/8383811977?text=नमस्ते%20Buzzat%20Team!%20मैं%20आपके%20प्लेटफ़ॉर्म%20पर%20वेंडर%20बनना%20चाहता%20हूं।" className="bg-gray-200 p-2 rounded-full hover:bg-emerald-100">
+                <FaWhatsapp size={18} className="text-gray-700" />
               </a>
             </div>
             <p className="text-sm text-gray-600">
@@ -185,38 +186,10 @@ export default function Footer(props: React.HTMLAttributes<HTMLElement>) {
               © {currentYear} Quick Commerce. All rights reserved.
             </p>
             <div className="flex items-center space-x-4">
-              {/* Payment method icons */}
-              <div className="flex space-x-2">
-                <div className="bg-white p-1 rounded shadow-sm">
-                  <svg className="h-6 w-10" viewBox="0 0 38 24" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="38" height="24" fill="#fff" />
-                    <path d="M15 7h8v10h-8z" fill="#FF5F00" />
-                    <path d="M15.9 12c0-2 1-3.9 2.5-5-2.7-2.1-6.6-1.6-8.7 1.1-2.1 2.7-1.6 6.6 1.1 8.7 2.3 1.8 5.5 1.8 7.8 0-1.6-1.1-2.6-3-2.6-5z" fill="#EB001B" />
-                    <path d="M30.1 12c0 3.3-2.7 6-6 6-1.8 0-3.6-.8-4.7-2.1 2.7-2.1 3.2-6 1.1-8.7-.3-.4-.7-.8-1.1-1.1 2.7-2.1 6.6-1.6 8.7 1.1 1.3 1.7 2 3.7 2 5.8z" fill="#F79E1B" />
-                  </svg>
-                </div>
-                <div className="bg-white p-1 rounded shadow-sm">
-                  <svg className="h-6 w-10" viewBox="0 0 38 24" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="38" height="24" fill="#fff" />
-                    <path d="M13 9.5h12c.8 0 1.5.7 1.5 1.5v2c0 .8-.7 1.5-1.5 1.5h-12c-.8 0-1.5-.7-1.5-1.5v-2c0-.8.7-1.5 1.5-1.5z" fill="#00A1DF" />
-                    <path d="M14 15h10v1H14z" fill="#00A1DF" />
-                  </svg>
-                </div>
-                <div className="bg-white p-1 rounded shadow-sm">
-                  <svg className="h-6 w-10" viewBox="0 0 38 24" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="38" height="24" fill="#fff" />
-                    <path d="M27.4 7.2c-.5-.6-1.4-.9-2.6-.9h-4.2c-.2 0-.4.1-.5.3l-1.5 9.6c0 .2.1.3.3.3h2c.2 0 .4-.1.5-.3l.4-2.6c0-.2.2-.3.4-.3h1.3c2.1 0 3.7-1 4.2-3.1.2-1.3 0-2.2-.5-3z" fill="#003087" />
-                    <path d="M14.8 7.2c-.5-.6-1.4-.9-2.6-.9H8c-.2 0-.4.1-.5.3l-1.5 9.6c0 .2.1.3.3.3h2c.2 0 .4-.1.4-.3l.4-2.6c0-.2.2-.3.4-.3h1.3c2.1 0 3.7-1 4.2-3.1.2-1.3 0-2.2-.5-3z" fill="#0070E0" />
-                  </svg>
-                </div>
-                <div className="bg-white p-1 rounded shadow-sm">
-                  <svg className="h-6 w-10" viewBox="0 0 38 24" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="38" height="24" fill="#fff" />
-                    <path d="M22.3 7.1c-.8 0-1.4.2-1.8.7-.4-.5-1-.7-1.7-.7-1.5 0-2.5 1.2-2.5 2.7v5.1h1.4v-5c0-.8.4-1.4 1.1-1.4s1.1.6 1.1 1.4v5h1.4v-5c0-.8.4-1.4 1.1-1.4s1.1.6 1.1 1.4v5h1.4v-5.1c0-1.5-1-2.7-2.5-2.7z" fill="#5F6368" />
-                    <path d="M13.8 7.2l-1.9 5.1-1.9-5.1h-1.5l2.7 7.2h1.5l2.7-7.2z" fill="#5F6368" />
-                  </svg>
-                </div>
-              </div>
+              {/* Make in India icons */}
+              <p className="text-gray-600 flex flex-row text-red-500 text-sm mb-4 md:mb-0">
+                <Heart /> Make in India by <a href="procotech.in" className="text-blue-300" > Proco Technologies</a>
+              </p>
             </div>
           </div>
         </div>

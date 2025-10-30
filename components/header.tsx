@@ -356,16 +356,16 @@ export default function Header() {
       {/* Mobile header */}
       <div className="md:hidden">
         <div className="flex items-center justify-between px-4 h-16">
-           <Link href="/" className="flex items-center">
-      <Image
-        src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png"
-        alt="Buzzat"
-        width={90}
-        height={36}
-        className="h-16 w-auto"
-        priority
-      />
-    </Link>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png"
+              alt="Buzzat"
+              width={90}
+              height={36}
+              className="h-16 w-auto"
+              priority
+            />
+          </Link>
           {!loading && (
             <div className="ml-auto flex items-center">
               {user ? (
@@ -587,16 +587,16 @@ export default function Header() {
       <div className="hidden md:block">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
-             <Link href="/" className="flex items-center">
-      <Image
-        src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png"
-        alt="Buzzat"
-        width={90}
-        height={36}
-        className="h-16 w-auto"
-        priority
-      />
-    </Link>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="https://res.cloudinary.com/dwfctknuj/image/upload/v1760357128/ctzgwemsm5n2gairfmza.png"
+                alt="Buzzat"
+                width={90}
+                height={36}
+                className="h-16 w-auto"
+                priority
+              />
+            </Link>
 
             <div className="ml-4">
               <PincodeSelector headerStyle={true} />
@@ -606,6 +606,15 @@ export default function Header() {
           <div className="flex relative w-1/2 max-w-xl">
             <ProductSearch />
           </div>
+
+          {/* Info Pages Navigation - Desktop */}
+          <nav className="hidden md:flex items-center gap-6 ml-6">
+            <Link href="/about-us" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">About Us</Link>
+            <Link href="/contact-us" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">Contact Us</Link>
+            <Link href="/terms" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">Terms &amp; Conditions</Link>
+            <Link href="/privacy" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">Privacy Policy</Link>
+            <Link href="/faqs" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">FAQs</Link>
+          </nav>
 
           <div className="flex items-center gap-2">
             {loading ? (
