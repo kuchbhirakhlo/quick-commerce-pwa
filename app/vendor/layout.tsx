@@ -304,6 +304,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                       size="icon"
                       className="text-white hover:bg-blue-700"
                       label="Install App"
+                      type="vendor"
                     />
 
                     <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>

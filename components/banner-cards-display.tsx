@@ -5,7 +5,7 @@ import BannerCard, { BannerCardProps } from "./banner-card"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface BannerCardsDisplayProps {
-  position?: 'top' | 'middle' | 'bottom'
+  position?: 'top' | 'middle' | 'bottom' | 'full'
 }
 
 export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps) {
@@ -79,6 +79,8 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
                 title={card.title}
                 imageUrl={card.imageUrl}
                 link={card.link}
+                description={card.description}
+                target={card.target}
                 className="flex-1"
               />
             ))}
@@ -92,6 +94,8 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
                 title={card.title}
                 imageUrl={card.imageUrl}
                 link={card.link}
+                description={card.description}
+                target={card.target}
               />
             ))}
           </div>
@@ -107,6 +111,8 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
               title={card.title}
               imageUrl={card.imageUrl}
               link={card.link}
+              description={card.description}
+              target={card.target}
             />
           ))}
         </div>
@@ -121,6 +127,25 @@ export default function BannerCardsDisplay({ position }: BannerCardsDisplayProps
               title={card.title}
               imageUrl={card.imageUrl}
               link={card.link}
+              description={card.description}
+              target={card.target}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* For full position - visible on both mobile and desktop, full width */}
+      {position === 'full' && (
+        <div className="w-full">
+          {filteredBanners.map(card => (
+            <BannerCard
+              key={card.id}
+              title={card.title}
+              imageUrl={card.imageUrl}
+              link={card.link}
+              description={card.description}
+              target={card.target}
+              className="w-full"
             />
           ))}
         </div>

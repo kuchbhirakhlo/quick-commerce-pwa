@@ -20,43 +20,53 @@ interface PWAInstallButtonProps {
   className?: string
   size?: "default" | "sm" | "lg" | "icon"
   label?: string
+  type?: "customer" | "vendor" | "admin"
 }
 
 export default function PWAInstallButton({
   variant = "default",
   className = "",
   size = "default",
-  label = "Install App"
+  label = "Install App",
+  type = "customer"
 }: PWAInstallButtonProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstallable, setIsInstallable] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
-    // Ensure vendor manifest is linked
-    const ensureVendorManifest = () => {
+    // Ensure correct manifest is linked based on type
+    const ensureManifest = () => {
+      const manifestPaths = {
+        customer: '/manifest.json',
+        vendor: '/vendor-manifest.json',
+        admin: '/admin-manifest.json'
+      }
+
+      const manifestPath = manifestPaths[type]
       const existingLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement
-      if (existingLink && !existingLink.href.includes('vendor-manifest.json')) {
-        existingLink.href = '/vendor-manifest.json'
+
+      if (existingLink && existingLink.href !== manifestPath) {
+        existingLink.href = manifestPath
       } else if (!existingLink) {
         const link = document.createElement('link')
         link.rel = 'manifest'
-        link.href = '/vendor-manifest.json'
+        link.href = manifestPath
         document.head.appendChild(link)
       }
     }
 
-    ensureVendorManifest()
+    ensureManifest()
 
     // Check if the app is already installed
     const checkInstalled = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       const isIOSStandalone = (window.navigator as any).standalone === true
-      const isVendorPWA = window.location.search.includes('source=pwa') ||
+      const isPWA = window.location.search.includes('source=pwa') ||
         window.location.search.includes('utm_source=homescreen') ||
         document.referrer.includes('homescreen')
 
-      return isStandalone || isIOSStandalone || isVendorPWA
+      return isStandalone || isIOSStandalone || isPWA
     }
 
     if (checkInstalled()) {
@@ -66,7 +76,7 @@ export default function PWAInstallButton({
 
     // Store the install prompt for later use
     const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('Vendor PWA: beforeinstallprompt event received')
+      console.log(`${type} PWA: beforeinstallprompt event received`)
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setIsInstallable(true)
@@ -77,7 +87,7 @@ export default function PWAInstallButton({
 
     // Listen for app installed event
     window.addEventListener('appinstalled', () => {
-      console.log('Vendor PWA was installed')
+      console.log(`${type} PWA was installed`)
       setIsInstalled(true)
       setDeferredPrompt(null)
     })
@@ -97,41 +107,41 @@ export default function PWAInstallButton({
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      console.error('Vendor PWA: No deferred prompt available')
+      console.error(`${type} PWA: No deferred prompt available`)
       return
     }
 
     try {
-      console.log('Vendor PWA: Showing install prompt')
+      console.log(`${type} PWA: Showing install prompt`)
 
       // Show the install prompt
       deferredPrompt.prompt()
 
       // Wait for the user to respond to the prompt
       const choiceResult = await deferredPrompt.userChoice
-      console.log('Vendor PWA: User choice result:', choiceResult)
+      console.log(`${type} PWA: User choice result:`, choiceResult)
 
       if (choiceResult.outcome === 'accepted') {
-        console.log('Vendor PWA: User accepted the install prompt')
+        console.log(`${type} PWA: User accepted the install prompt`)
       } else {
-        console.log('Vendor PWA: User dismissed the install prompt')
+        console.log(`${type} PWA: User dismissed the install prompt`)
       }
 
       // Clear the deferredPrompt as it can only be used once
       setDeferredPrompt(null)
       setIsInstallable(false)
     } catch (error) {
-      console.error('Vendor PWA: Error showing install prompt:', error)
+      console.error(`${type} PWA: Error showing install prompt:`, error)
     }
   }
 
   // Don't show the button if the app is already installed or not installable
   if (isInstalled || !isInstallable) {
-    console.log('Vendor PWA: Button hidden - isInstalled:', isInstalled, 'isInstallable:', isInstallable)
+    console.log(`${type} PWA: Button hidden - isInstalled:`, isInstalled, 'isInstallable:', isInstallable)
     return null
   }
 
-  console.log('Vendor PWA: Install button shown - isInstallable:', isInstallable, 'hasDeferredPrompt:', !!deferredPrompt)
+  console.log(`${type} PWA: Install button shown - isInstallable:`, isInstallable, 'hasDeferredPrompt:', !!deferredPrompt)
 
   return (
     <Button

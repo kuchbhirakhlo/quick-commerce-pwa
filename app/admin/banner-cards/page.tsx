@@ -31,6 +31,8 @@ export default function BannerCardsAdmin() {
     imageUrl: "",
     link: "",
     position: "top",
+    description: "",
+    target: "_self",
   })
   const { toast } = useToast()
 
@@ -63,7 +65,7 @@ export default function BannerCardsAdmin() {
   }
 
   const handlePositionChange = (value: string) => {
-    setCurrentCard((prev) => ({ ...prev, position: value as "top" | "middle" | "bottom" }))
+    setCurrentCard((prev) => ({ ...prev, position: value as "top" | "middle" | "bottom" | "full" }))
   }
 
   const handleEditCard = (card: BannerCardProps) => {
@@ -90,12 +92,12 @@ export default function BannerCardsAdmin() {
       })
 
       if (!response.ok) throw new Error("Failed to save banner card")
-      
+
       toast({
         title: "Success",
         description: "Banner card saved successfully",
       })
-      
+
       fetchCards()
       resetForm()
     } catch (error) {
@@ -115,12 +117,12 @@ export default function BannerCardsAdmin() {
       })
 
       if (!response.ok) throw new Error("Failed to delete banner card")
-      
+
       toast({
         title: "Success",
         description: "Banner card deleted successfully",
       })
-      
+
       fetchCards()
     } catch (error) {
       console.error("Error deleting banner card:", error)
@@ -138,6 +140,8 @@ export default function BannerCardsAdmin() {
       imageUrl: "",
       link: "",
       position: "top",
+      description: "",
+      target: "_self",
     })
   }
 
@@ -205,14 +209,41 @@ export default function BannerCardsAdmin() {
                   name="link"
                   value={currentCard.link || ""}
                   onChange={handleInputChange}
-                  placeholder="/category/fruits-vegetables"
+                  placeholder="/category/fruits-vegetables or https://external-site.com"
                 />
               </div>
 
               <div className="grid gap-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Input
+                  id="description"
+                  name="description"
+                  value={currentCard.description || ""}
+                  onChange={handleInputChange}
+                  placeholder="Additional description text"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="target">Link Target</Label>
+                <Select
+                  value={currentCard.target || "_self"}
+                  onValueChange={(value) => setCurrentCard((prev) => ({ ...prev, target: value as "_self" | "_blank" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select link target" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_self">Same Tab (_self)</SelectItem>
+                    <SelectItem value="_blank">New Tab (_blank)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
                 <Label htmlFor="position">Position</Label>
-                <Select 
-                  value={currentCard.position} 
+                <Select
+                  value={currentCard.position}
                   onValueChange={handlePositionChange}
                 >
                   <SelectTrigger>
@@ -222,6 +253,7 @@ export default function BannerCardsAdmin() {
                     <SelectItem value="top">Top (Above categories)</SelectItem>
                     <SelectItem value="middle">Middle (Below categories)</SelectItem>
                     <SelectItem value="bottom">Bottom (Above footer)</SelectItem>
+                    <SelectItem value="full">Full Width (Any position)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-gray-500 mt-1">
@@ -273,8 +305,20 @@ export default function BannerCardsAdmin() {
                       <p className="text-sm text-gray-500 truncate">
                         Link: {card.link}
                       </p>
-                      <div className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded mt-2">
-                        Position: {card.position}
+                      {card.description && (
+                        <p className="text-sm text-gray-600 truncate">
+                          {card.description}
+                        </p>
+                      )}
+                      <div className="flex gap-2 mt-2">
+                        <div className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
+                          Position: {card.position}
+                        </div>
+                        {card.target === '_blank' && (
+                          <div className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                            Opens in new tab
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 mt-4">
                         <Button

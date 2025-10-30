@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     // Validate
     if (!card.title || !card.imageUrl || !card.link || !card.position) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: title, imageUrl, link, and position are required' },
         { status: 400 }
       )
     }

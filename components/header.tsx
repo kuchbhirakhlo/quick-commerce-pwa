@@ -35,6 +35,7 @@ import { useRouter, usePathname } from "next/navigation"
 import CartItem from "./cart-item"
 import { ProductSearch } from "./product-search"
 import { isAdminOrVendorPage, getButtonClass } from "@/lib/utils"
+import PWAInstallButton from "./pwa-install-button"
 
 interface Category {
   id: string;
@@ -603,18 +604,10 @@ export default function Header() {
             </div>
           </div>
 
-          <div className="flex relative w-1/2 max-w-xl">
+          <div className="flex relative w-96 max-w-xl">
             <ProductSearch />
           </div>
 
-          {/* Info Pages Navigation - Desktop */}
-          <nav className="hidden md:flex items-center gap-6 ml-6">
-            <Link href="/about-us" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">About Us</Link>
-            <Link href="/contact-us" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">Contact Us</Link>
-            <Link href="/terms" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">Terms &amp; Conditions</Link>
-            <Link href="/privacy" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">Privacy Policy</Link>
-            <Link href="/faqs" className="text-gray-600 hover:text-emerald-600 text-sm font-medium">FAQs</Link>
-          </nav>
 
           <div className="flex items-center gap-2">
             {loading ? (
@@ -653,6 +646,14 @@ export default function Header() {
                 <span className="">Login</span>
               </Button>
             )}
+
+            <PWAInstallButton
+              variant="outline"
+              size="sm"
+              className="hidden md:flex"
+              label="Install Customer App"
+              type="customer"
+            />
 
             <Sheet open={openCartSheet} onOpenChange={setOpenCartSheet}>
               <SheetTrigger asChild>
@@ -779,10 +780,10 @@ export default function Header() {
             </div>
           </div>
         </div>
-      </div>
+      </div >
 
       {/* Account sidebar (Sheet) */}
-      <Sheet open={openAccountSheet} onOpenChange={setOpenAccountSheet}>
+      < Sheet open={openAccountSheet} onOpenChange={setOpenAccountSheet} >
         <SheetContent side="right" className="w-80 sm:w-96 z-[100]">
           <SheetTitle className="sr-only">Account</SheetTitle>
           {user ? (
@@ -826,9 +827,11 @@ export default function Header() {
             </div>
           )}
         </SheetContent>
-      </Sheet>
+      </Sheet >
 
-      {showLoginModal && <LoginModal onClose={handleCloseLoginModal} />}
-    </header>
+      {
+        showLoginModal && <LoginModal onClose={handleCloseLoginModal} />
+      }
+    </header >
   )
 }

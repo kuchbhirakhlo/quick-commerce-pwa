@@ -93,9 +93,7 @@ export default function Footer(props: React.HTMLAttributes<HTMLElement>) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 md:gap-8">
           {/* Logo and description - always visible */}
           <div className="mb-6 md:mb-8">
-            <Link href="/" className="inline-block mb-4">
-              <Image src="/icons/dlogo.gif" className="rounded-full" alt="Logo" width={120} height={48} />
-            </Link>
+            <Image src="/icons/dlogo.gif" className="rounded-full" alt="Logo" width={120} height={48} unoptimized />
             <p className="text-gray-600 md:max-w-md">
               Your one-stop shop for quick grocery delivery. Get fresh products delivered to your doorstep in minutes.
             </p>
@@ -187,7 +185,7 @@ export default function Footer(props: React.HTMLAttributes<HTMLElement>) {
             </p>
             <div className="flex items-center space-x-4">
               {/* Make in India icons */}
-              <p className="text-gray-600 flex flex-row text-red-500 text-sm mb-4 md:mb-0">
+              <p className="text-gray-600 gap-2 flex flex-row text-red-500 text-sm mb-4 md:mb-0">
                 <Heart /> Make in India by <a href="procotech.in" className="text-blue-300" > Proco Technologies</a>
               </p>
             </div>
