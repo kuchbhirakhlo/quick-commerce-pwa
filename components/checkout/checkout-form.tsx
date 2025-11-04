@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent } from "@/components/ui/card"
 import { getButtonClass } from "@/lib/utils"
 import LoginModal from "../auth/login-modal"
+import UPIPayment from "../upi-payment"
 
 // Define address type
 interface SavedAddress {
@@ -949,18 +950,24 @@ export default function CheckoutForm() {
             </div>
           </div>
 
-          <div className={`flex items-center p-3 rounded-lg border ${formData.paymentMethod === "online" ? "border-orange-500 bg-orange-50" : "border-gray-200"}`}>
-            <RadioGroupItem value="online" id="online" className="mr-3" />
+
+          <div className={`flex items-center p-3 rounded-lg border ${formData.paymentMethod === "upi" ? "border-orange-500 bg-orange-50" : "border-gray-200"}`}>
+            <RadioGroupItem value="upi" id="upi" className="mr-3" />
             <div>
-              <Label htmlFor="online" className="font-medium cursor-pointer">Online Payment</Label>
-              <p className="text-xs text-gray-600">Pay now with card, UPI, or wallet</p>
+              <Label htmlFor="upi" className="font-medium cursor-pointer">UPI Payment</Label>
+              <p className="text-xs text-gray-600">Pay using UPI QR code</p>
             </div>
           </div>
         </RadioGroup>
       </div>
 
-      <Button type="submit" className={`w-full ${getButtonClass(pathname)}`} disabled={isSubmitting || !selectedAddress}>
-        {isSubmitting ? "Processing..." : "Place Order"}
+      {/* UPI Payment Section */}
+      {formData.paymentMethod === "upi" && (
+        <UPIPayment amount={totalAmount} />
+      )}
+
+      <Button type="submit" className={`w-full ${getButtonClass(pathname)}`} disabled={isSubmitting || !selectedAddress || (formData.paymentMethod === "upi" && !totalAmount)}>
+        {isSubmitting ? "Processing..." : formData.paymentMethod === "upi" ? "Pay with UPI" : "Place Order"}
       </Button>
     </form>
   )
